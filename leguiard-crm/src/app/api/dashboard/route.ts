@@ -37,77 +37,81 @@ export async function GET(request: NextRequest) {
       .eq("tenant_id", tenantId)
       .gte("created_at", sevenDaysAgo.toISOString());
 
-    // Leads quentes
-    const { count: hotLeads } = await supabase
+    // Fetch leads created or interacted within the last 30 days for time series
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const { data: recentLeads } = await supabase
       .from("leads")
-      .select("*", { count: "exact", head: true })
+      .select("id, created_at, last_interaction")
       .eq("tenant_id", tenantId)
-      .eq("temperature", "quente");
+      .or(
+        `created_at.gte.${thirtyDaysAgo.toISOString()},last_interaction.gte.${thirtyDaysAgo.toISOString()}`
+      );
 
-    // Leads com IA ativa
-    const { count: aiActiveLeads } = await supabase
-      .from("leads")
-      .select("*", { count: "exact", head: true })
-      .eq("tenant_id", tenantId)
-      .eq("ai_active", true);
+    // Map counts per day
+    const leadsPerDayMap: Record<string, number> = {};
+    const conversationsPerDayMap: Record<string, Set<string>> = {};
 
-    // Distribuição por status kanban
-    const { data: allLeads } = await supabase
-      .from("leads")
-      .select("status_kanban, temperature, created_at")
-      .eq("tenant_id", tenantId);
+    const leadIds: string[] = [];
+    if (recentLeads) {
+      for (const lead of recentLeads) {
+        leadIds.push(lead.id);
 
-    const statusDistribution: Record<string, number> = {};
-    const temperatureDistribution: Record<string, number> = {};
-    const leadsOverTimeMap: Record<string, number> = {};
+        // Leads per day (created_at)
+        if (lead.created_at) {
+          const date = new Date(lead.created_at).toISOString().split("T")[0];
+          leadsPerDayMap[date] = (leadsPerDayMap[date] || 0) + 1;
+        }
 
-    if (allLeads) {
-      for (const lead of allLeads) {
-        // Status
-        const status = lead.status_kanban || "novo";
-        statusDistribution[status] = (statusDistribution[status] || 0) + 1;
-
-        // Temperatura
-        const temp = lead.temperature || "sem_info";
-        temperatureDistribution[temp] = (temperatureDistribution[temp] || 0) + 1;
-
-        // Leads ao longo do tempo (últimos 30 dias, por dia)
-        const date = new Date(lead.created_at).toISOString().split("T")[0];
-        leadsOverTimeMap[date] = (leadsOverTimeMap[date] || 0) + 1;
+        // Conversations per day: unique leads whose last_interaction falls on that day
+        if (lead.last_interaction) {
+          const liDate = new Date(lead.last_interaction).toISOString().split("T")[0];
+          conversationsPerDayMap[liDate] = conversationsPerDayMap[liDate] || new Set();
+          conversationsPerDayMap[liDate].add(lead.id);
+        }
       }
     }
 
-    // Formatar leads ao longo do tempo (últimos 30 dias)
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    const leadsOverTime: { date: string; count: number }[] = [];
-    for (let d = new Date(thirtyDaysAgo); d <= new Date(); d.setDate(d.getDate() + 1)) {
-      const dateStr = d.toISOString().split("T")[0];
-      leadsOverTime.push({
-        date: dateStr,
-        count: leadsOverTimeMap[dateStr] || 0,
-      });
+    // Fetch interactions for these leads in the last 30 days to compute messages per day and interactions today
+    let interactions: any[] = [];
+    if (leadIds.length > 0) {
+      const { data: interactionsData } = await supabase
+        .from("interactions")
+        .select("created_at")
+        .in("lead_id", leadIds)
+        .gte("created_at", thirtyDaysAgo.toISOString());
+      interactions = interactionsData || [];
     }
 
-    // Status distribution formatado
-    const statusDist = Object.entries(statusDistribution).map(
-      ([status, count]) => ({
-        status,
-        count,
-      })
-    );
+    const messagesPerDayMap: Record<string, number> = {};
+    const today = new Date();
+    const todayStr = today.toISOString().split("T")[0];
+    let interactionsTodayCount = 0;
 
-    // Temperature distribution formatado
-    const tempDist = Object.entries(temperatureDistribution).map(
-      ([temperature, count]) => ({
-        temperature,
-        count,
-      })
-    );
+    for (const inter of interactions) {
+      const d = new Date(inter.created_at).toISOString().split("T")[0];
+      messagesPerDayMap[d] = (messagesPerDayMap[d] || 0) + 1;
+      if (d === todayStr) interactionsTodayCount += 1;
+    }
 
-    // Novos desde último login
+    // Formatar os últimos 30 dias para as séries temporais: leads por dia, conversas por dia, mensagens por dia
+    const leadsPerDay: { date: string; count: number }[] = [];
+    const conversationsPerDay: { date: string; count: number }[] = [];
+    const messagesPerDay: { date: string; count: number }[] = [];
+
+    const start = new Date();
+    start.setDate(start.getDate() - 30);
+    for (let d = new Date(start); d <= new Date(); d.setDate(d.getDate() + 1)) {
+      const dateStr = d.toISOString().split("T")[0];
+      leadsPerDay.push({ date: dateStr, count: leadsPerDayMap[dateStr] || 0 });
+      conversationsPerDay.push({ date: dateStr, count: (conversationsPerDayMap[dateStr] && conversationsPerDayMap[dateStr].size) || 0 });
+      messagesPerDay.push({ date: dateStr, count: messagesPerDayMap[dateStr] || 0 });
+    }
+
+    // Novos desde último login (último dia) - manter para badge/newness
     const lastLogin = new Date();
-    lastLogin.setDate(lastLogin.getDate() - 1); // fallback: último dia
+    lastLogin.setDate(lastLogin.getDate() - 1);
     const { count: newSinceLastLogin } = await supabase
       .from("leads")
       .select("*", { count: "exact", head: true })
@@ -119,11 +123,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       totalLeads: totalLeads || 0,
       newLeadsLast7Days: newLeadsLast7Days || 0,
-      hotLeads: hotLeads || 0,
-      aiActiveLeads: aiActiveLeads || 0,
-      leadsOverTime,
-      statusDistribution: statusDist,
-      temperatureDistribution: tempDist,
+      interactionsToday: interactionsTodayCount || 0,
+      leadsPerDay,
+      conversationsPerDay,
+      messagesPerDay,
       newSinceLastLogin: newSinceLastLogin || 0,
     });
   } catch (error) {

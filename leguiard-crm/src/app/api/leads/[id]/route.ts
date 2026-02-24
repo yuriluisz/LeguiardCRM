@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { STATUS_LABELS } from "@/types/database";
 
 export async function GET(
   _request: NextRequest,
@@ -28,6 +29,11 @@ export async function GET(
         { error: "Lead não encontrado" },
         { status: 404 }
       );
+    }
+
+    // Normalize status_kanban to lowercase key expected by frontend
+    if (lead && lead.status_kanban) {
+      lead.status_kanban = String(lead.status_kanban).toLowerCase();
     }
 
     // Buscar interações
@@ -77,6 +83,7 @@ export async function PATCH(
 
     const body = await request.json();
 
+
     // Apenas campos permitidos
     const allowedFields = ["status_kanban", "ai_active", "not_a_lead"];
     const updates: Record<string, unknown> = {};
@@ -85,6 +92,31 @@ export async function PATCH(
       if (field in body) {
         updates[field] = body[field];
       }
+    }
+
+    // Normalizar e validar campos antes de atualizar o DB
+    if ("status_kanban" in updates) {
+      const raw = updates.status_kanban;
+      if (typeof raw !== "string") {
+        return NextResponse.json({ error: "status_kanban inválido" }, { status: 400 });
+      }
+
+      const key = String(raw).toLowerCase();
+      // STATUS_LABELS maps keys como 'novo' -> 'Novo'
+      if (key in STATUS_LABELS) {
+        updates.status_kanban = (STATUS_LABELS as Record<string, string>)[key];
+      } else {
+        // Try to convert to capitalized form as a fallback
+        updates.status_kanban = `${raw.charAt(0).toUpperCase()}${raw.slice(1)}`;
+      }
+    }
+
+    if ("ai_active" in updates) {
+      updates.ai_active = Boolean(updates.ai_active);
+    }
+
+    if ("not_a_lead" in updates) {
+      updates.not_a_lead = Boolean(updates.not_a_lead);
     }
 
     if (Object.keys(updates).length === 0) {

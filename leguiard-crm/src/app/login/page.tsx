@@ -81,8 +81,7 @@ function LoginContent() {
         return;
       }
 
-      // Salvar timestamp de login para badge de novidades
-      localStorage.setItem("lastLoginAt", new Date().toISOString());
+      // removed: do not store lastLoginAt for 'new since last login' feature
 
       router.push("/dashboard");
       router.refresh();

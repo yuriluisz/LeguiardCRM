@@ -214,24 +214,6 @@ export default function LeadDetailPage() {
           {/* Dados do lead */}
           <LeadDetailSidebar lead={lead} />
 
-          {/* Dados customizados */}
-          {crmConfig?.fields && crmConfig.fields.length > 0 && (
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Sparkles className="h-4 w-4" />
-                  Dados Adicionais
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CustomDataFields
-                  fields={crmConfig.fields}
-                  data={lead.custom_data}
-                />
-              </CardContent>
-            </Card>
-          )}
-
           {/* Ações */}
           <Card>
             <CardHeader className="pb-3">
@@ -297,6 +279,24 @@ export default function LeadDetailPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Dados customizados */}
+          {crmConfig?.fields && crmConfig.fields.length > 0 && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Sparkles className="h-4 w-4" />
+                  Dados Adicionais
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CustomDataFields
+                  fields={crmConfig.fields}
+                  data={lead.custom_data}
+                />
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
 

@@ -80,11 +80,10 @@ export interface CrmUserTenant {
 export interface DashboardMetrics {
   totalLeads: number;
   newLeadsLast7Days: number;
-  hotLeads: number;
-  aiActiveLeads: number;
-  leadsOverTime: { date: string; count: number }[];
-  statusDistribution: { status: StatusKanban; count: number }[];
-  temperatureDistribution: { temperature: string; count: number }[];
+  interactionsToday: number;
+  leadsPerDay: { date: string; count: number }[];
+  conversationsPerDay: { date: string; count: number }[];
+  messagesPerDay: { date: string; count: number }[];
   newSinceLastLogin: number;
 }
 

@@ -61,8 +61,14 @@ export async function GET(request: NextRequest) {
 
     if (error) throw error;
 
+    // Normalize status_kanban to lowercase keys expected by the frontend
+    const normalized = (data || []).map((lead: any) => ({
+      ...lead,
+      status_kanban: lead.status_kanban ? String(lead.status_kanban).toLowerCase() : lead.status_kanban,
+    }));
+
     return NextResponse.json({
-      leads: data,
+      leads: normalized,
       total: count,
       page,
       limit,

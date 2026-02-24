@@ -14,7 +14,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { NewnessBadge } from "@/components/shared/newness-badge";
 import {
   DndContext,
   DragOverlay,
@@ -41,12 +40,7 @@ export default function KanbanPage() {
     newStatus: StatusKanban;
   } | null>(null);
   const [saving, setSaving] = useState(false);
-  const [lastLoginAt] = useState<string | null>(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("lastLoginAt");
-    }
-    return null;
-  });
+  // removed: lastLoginAt feature
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -181,7 +175,6 @@ export default function KanbanPage() {
                     <KanbanCard
                       key={lead.id}
                       lead={lead}
-                      lastLoginAt={lastLoginAt}
                       onClick={() => router.push(`/leads/${lead.id}`)}
                     />
                   ))}

@@ -4,7 +4,6 @@ import { useDraggable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { NewnessBadge } from "@/components/shared/newness-badge";
 import type { Lead } from "@/types/database";
 import { TEMPERATURE_LABELS, TEMPERATURE_COLORS } from "@/types/database";
 import { format } from "date-fns";
@@ -14,11 +13,10 @@ import { cn } from "@/lib/utils";
 
 interface KanbanCardProps {
   lead: Lead;
-  lastLoginAt: string | null;
   onClick: () => void;
 }
 
-export function KanbanCard({ lead, lastLoginAt, onClick }: KanbanCardProps) {
+export function KanbanCard({ lead, onClick }: KanbanCardProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useDraggable({
       id: lead.id,
@@ -69,11 +67,7 @@ export function KanbanCard({ lead, lastLoginAt, onClick }: KanbanCardProps) {
               {TEMPERATURE_LABELS[lead.temperature]}
             </Badge>
           )}
-          <NewnessBadge
-            createdAt={lead.created_at}
-            lastInteraction={lead.last_interaction}
-            lastLoginAt={lastLoginAt}
-          />
+          {/* removed: new-since-last-login badge */}
         </div>
 
         {lead.last_interaction && (

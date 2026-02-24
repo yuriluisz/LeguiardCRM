@@ -24,7 +24,6 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { NewnessBadge } from "@/components/shared/newness-badge";
 import { Switch } from "@/components/ui/switch";
 import {
   Tooltip,
@@ -38,6 +37,7 @@ import {
   ChevronLeft,
   ChevronRight,
   UserX,
+  MessageSquare,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -56,12 +56,7 @@ export default function LeadsPage() {
   const [tempFilter, setTempFilter] = useState<string>("all");
   const [aiFilter, setAiFilter] = useState<string>("all");
   const [notALeadFilter, setNotALeadFilter] = useState<string>("all");
-  const [lastLoginAt] = useState<string | null>(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("lastLoginAt");
-    }
-    return null;
-  });
+  // removed: lastLoginAt feature
 
   // Toggle rápido sem modal de aviso
   async function quickToggle(leadId: string, field: "ai_active" | "not_a_lead", currentValue: boolean) {
@@ -218,24 +213,23 @@ export default function LeadsPage() {
         <LeadsSkeleton showHeader={false} />
       ) : (
         <>
-          <div className="rounded-md border">
-            <Table>
+          <div className="rounded-md border overflow-x-auto">
+            <Table className="w-full">
               <TableHeader>
                 <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Telefone</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Temperatura</TableHead>
-                  <TableHead>Última Interação</TableHead>
-                  <TableHead>IA</TableHead>
-                  <TableHead>Ações</TableHead>
-                </TableRow>
+                  <TableHead className="w-1/6 text-center">Nome</TableHead>
+                  <TableHead className="w-1/6 text-center">Telefone</TableHead>
+                  <TableHead className="w-1/6 text-center">Última Interação</TableHead>
+                  <TableHead className="w-1/6 text-center">Desligar IA</TableHead>
+                  <TableHead className="w-1/6 text-center">Não é Lead</TableHead>
+                  <TableHead className="w-1/6 text-center">Mensagens</TableHead>
+                  </TableRow>
               </TableHeader>
               <TableBody>
                 {leads.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={7}
+                      colSpan={6}
                       className="h-24 text-center text-muted-foreground"
                     >
                       Nenhum lead encontrado.
@@ -248,16 +242,12 @@ export default function LeadsPage() {
                       className="cursor-pointer hover:bg-muted/50"
                       onClick={() => router.push(`/leads/${lead.id}`)}
                     >
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">
+                      <TableCell className="w-1/6 text-center">
+                        <div className="flex flex-col items-center gap-1">
+                          <span className="font-medium truncate">
                             {lead.name || "Sem nome"}
                           </span>
-                          <NewnessBadge
-                            createdAt={lead.created_at}
-                            lastInteraction={lead.last_interaction}
-                            lastLoginAt={lastLoginAt}
-                          />
+                          {/* removed: new-since-last-login badge */}
                           {lead.not_a_lead && (
                             <Badge variant="outline" className="text-xs">
                               Não-lead
@@ -265,31 +255,10 @@ export default function LeadsPage() {
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="font-mono text-sm">
+                      <TableCell className="w-1/6 font-mono text-sm text-center truncate">
                         {lead.phone}
                       </TableCell>
-                      <TableCell>
-                        <Badge variant="secondary">
-                          {STATUS_LABELS[lead.status_kanban] ||
-                            lead.status_kanban}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {lead.temperature ? (
-                          <Badge
-                            className={`${
-                              TEMPERATURE_COLORS[lead.temperature]
-                            } text-white`}
-                          >
-                            {TEMPERATURE_LABELS[lead.temperature]}
-                          </Badge>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">
-                            —
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
+                      <TableCell className="w-1/6 text-sm text-muted-foreground text-center truncate">
                         {lead.last_interaction
                           ? format(
                               new Date(lead.last_interaction),
@@ -300,37 +269,19 @@ export default function LeadsPage() {
                             )
                           : "—"}
                       </TableCell>
-                      <TableCell>
-                        {lead.ai_active ? (
-                          <Bot className="h-4 w-4 text-green-500" />
-                        ) : (
-                          <BotOff className="h-4 w-4 text-muted-foreground" />
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant={lead.not_a_lead ? "destructive" : "outline"}
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => quickToggle(lead.id, "not_a_lead", lead.not_a_lead)}
-                              >
-                                <UserX className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              {lead.not_a_lead ? "Marcar como lead" : "Marcar como não-lead"}
-                            </TooltipContent>
-                          </Tooltip>
+                      <TableCell onClick={(e) => e.stopPropagation()} className="w-1/6 text-center">
+                        <div className="flex items-center justify-center gap-1">
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Button
                                 variant={lead.ai_active ? "default" : "outline"}
                                 size="icon"
                                 className="h-8 w-8"
-                                onClick={() => quickToggle(lead.id, "ai_active", lead.ai_active)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  quickToggle(lead.id, "ai_active", lead.ai_active);
+                                }}
+                                aria-label="Alternar IA"
                               >
                                 {lead.ai_active ? (
                                   <Bot className="h-4 w-4" />
@@ -342,6 +293,52 @@ export default function LeadsPage() {
                             <TooltipContent>
                               {lead.ai_active ? "Desligar IA" : "Ligar IA"}
                             </TooltipContent>
+                          </Tooltip>
+                        </div>
+                      </TableCell>
+
+                      <TableCell onClick={(e) => e.stopPropagation()} className="w-1/6 text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant={lead.not_a_lead ? "destructive" : "outline"}
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  quickToggle(lead.id, "not_a_lead", lead.not_a_lead);
+                                }}
+                                aria-label="Marcar não-lead"
+                              >
+                                <UserX className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              {lead.not_a_lead ? "Marcar como lead" : "Marcar como não-lead"}
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
+                      </TableCell>
+
+                      <TableCell onClick={(e) => e.stopPropagation()} className="w-1/6 text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  router.push(`/leads/${lead.id}`);
+                                }}
+                                aria-label="Mensagens"
+                              >
+                                <MessageSquare className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Mensagens</TooltipContent>
                           </Tooltip>
                         </div>
                       </TableCell>
