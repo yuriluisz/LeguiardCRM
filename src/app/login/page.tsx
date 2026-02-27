@@ -26,12 +26,15 @@ export default function LoginPage() {
 function LoginContent() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [invitePassword, setInvitePassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const errorParam = searchParams.get("error");
+  const inviteCode = searchParams.get("code");
+  const isInvite = Boolean(inviteCode);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -123,6 +126,41 @@ function LoginContent() {
     }
   }
 
+  async function handleAcceptInvite(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    try {
+      const code = inviteCode;
+      if (!code) {
+        setError("Código de convite inválido.");
+        return;
+      }
+
+      const supabase = createClient();
+
+      const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+      if (exchangeError) {
+        setError(exchangeError.message);
+        return;
+      }
+
+      const { error: updateError } = await supabase.auth.updateUser({ password: invitePassword });
+      if (updateError) {
+        setError(updateError.message);
+        return;
+      }
+
+      router.push("/dashboard");
+      router.refresh();
+    } catch (err) {
+      setError("Erro inesperado. Tente novamente.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <Card className="w-full max-w-md">
@@ -131,52 +169,78 @@ function LoginContent() {
           <CardDescription>Entre com suas credenciais para acessar o sistema</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleLogin} className="space-y-4">
-            {(error || errorParam === "inactive") && (
+          {isInvite ? (
+            <form onSubmit={handleAcceptInvite} className="space-y-4">
+              {(error || errorParam === "inactive") && (
               <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
                 {errorParam === "inactive"
                   ? "Sua conta está desativada."
                   : error}
               </div>
             )}
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="seu@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                autoComplete="email"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                autoComplete="current-password"
-              />
-            </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Entrar
-            </Button>
-            <Button
-              type="button"
-              variant="link"
-              className="w-full text-sm"
-              onClick={handleForgotPassword}
-              disabled={loading}
-            >
-              Esqueci minha senha
-            </Button>
-          </form>
+              <div className="space-y-2">
+                <Label htmlFor="invitePassword">Crie sua nova senha</Label>
+                <Input
+                  id="invitePassword"
+                  type="password"
+                  placeholder="••••••••"
+                  value={invitePassword}
+                  onChange={(e) => setInvitePassword(e.target.value)}
+                  required
+                  autoComplete="new-password"
+                />
+              </div>
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Salvar e Acessar
+              </Button>
+            </form>
+          ) : (
+            <form onSubmit={handleLogin} className="space-y-4">
+              {(error || errorParam === "inactive") && (
+                <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+                  {errorParam === "inactive" ? "Sua conta está desativada." : error}
+                </div>
+              )}
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="seu@email.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  autoComplete="email"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Senha</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  autoComplete="current-password"
+                />
+              </div>
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Entrar
+              </Button>
+              <Button
+                type="button"
+                variant="link"
+                className="w-full text-sm"
+                onClick={handleForgotPassword}
+                disabled={loading}
+              >
+                Esqueci minha senha
+              </Button>
+            </form>
+          )}
         </CardContent>
       </Card>
     </div>
