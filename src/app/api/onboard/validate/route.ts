@@ -14,25 +14,31 @@ export async function GET(request: NextRequest) {
 
     const supabase = createSupabaseClient(SUPABASE_URL, SERVICE_ROLE);
 
+    // Select all columns to be tolerant if schema differs between environments.
     const { data, error } = await supabase
       .from("crm_users")
-      .select("id, email, name, newuser_token_expires_at")
+      .select("*")
       .eq("newuser_token", token)
       .eq("active", true)
       .maybeSingle();
 
     if (error) {
-      console.error("Erro ao buscar crm_user:", error);
-      return NextResponse.json({ error: "Erro interno" }, { status: 500 });
+      console.error("Erro ao buscar crm_user:", error?.message || error, error?.details || "");
+      // Return the supabase error message in dev to aid debugging (safe to remove in production)
+      return NextResponse.json({ error: "Erro interno", detail: error?.message || null }, { status: 500 });
     }
 
     if (!data) {
       return NextResponse.json({ error: "Token inválido ou usuário inativo" }, { status: 404 });
     }
 
-    if (data.newuser_token_expires_at) {
-      const expires = new Date(data.newuser_token_expires_at);
-      if (expires < new Date()) {
+    // If the column exists, enforce expiration.
+    const expiresAt = (data as any)?.newuser_token_expires_at;
+    if (expiresAt) {
+      const expires = new Date(expiresAt);
+      if (isNaN(expires.getTime())) {
+        console.warn("newuser_token_expires_at possui formato inválido:", expiresAt);
+      } else if (expires < new Date()) {
         return NextResponse.json({ error: "Token expirado" }, { status: 410 });
       }
     }
