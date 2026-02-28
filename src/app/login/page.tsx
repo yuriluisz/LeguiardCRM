@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,9 @@ function LoginContent() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [invitePassword, setInvitePassword] = useState("");
+  const [tokenUser, setTokenUser] = useState<{ id: string; email: string; name?: string } | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -35,6 +38,8 @@ function LoginContent() {
   const errorParam = searchParams.get("error");
   const inviteCode = searchParams.get("code");
   const isInvite = Boolean(inviteCode);
+  const tokenParam = searchParams.get("token");
+  const isOnboard = Boolean(tokenParam);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -161,6 +166,76 @@ function LoginContent() {
     }
   }
 
+  useEffect(() => {
+    async function validateToken() {
+      if (!tokenParam) return;
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await fetch(`/api/onboard/validate?token=${encodeURIComponent(tokenParam)}`);
+        if (!res.ok) {
+          const json = await res.json().catch(() => ({}));
+          setError(json?.error || "Token inválido ou expirado.");
+          return;
+        }
+        const data = await res.json();
+        setTokenUser({ id: data.id, email: data.email, name: data.name });
+      } catch (err) {
+        setError("Erro ao validar token.");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    validateToken();
+  }, [tokenParam]);
+
+  async function handleCompleteOnboarding(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    if (!tokenParam || !tokenUser) {
+      setError("Token inválido.");
+      setLoading(false);
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      setError("Senha deve ter ao menos 8 caracteres.");
+      setLoading(false);
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setError("As senhas não coincidem.");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/onboard/complete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: tokenParam, user_id: tokenUser.id, new_password: newPassword }),
+      });
+
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(json?.error || "Falha ao completar cadastro.");
+        return;
+      }
+
+      // Redirect to login page with success flag
+      router.push("/login?onboard=success");
+      router.refresh();
+    } catch (err) {
+      setError("Erro inesperado. Tente novamente.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <Card className="w-full max-w-md">
@@ -169,7 +244,51 @@ function LoginContent() {
           <CardDescription>Entre com suas credenciais para acessar o sistema</CardDescription>
         </CardHeader>
         <CardContent>
-          {isInvite ? (
+          {isOnboard ? (
+            <form onSubmit={handleCompleteOnboarding} className="space-y-4">
+              {(error || errorParam === "inactive") && (
+                <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+                  {errorParam === "inactive" ? "Sua conta está desativada." : error}
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label>Usuário</Label>
+                <Input value={tokenUser?.email || ""} readOnly />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="newPassword">Nova senha</Label>
+                <Input
+                  id="newPassword"
+                  type="password"
+                  placeholder="••••••••"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  required
+                  autoComplete="new-password"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirme a senha</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  placeholder="••••••••"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                  autoComplete="new-password"
+                />
+              </div>
+
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Criar senha
+              </Button>
+            </form>
+          ) : isInvite ? (
             <form onSubmit={handleAcceptInvite} className="space-y-4">
               {(error || errorParam === "inactive") && (
               <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
