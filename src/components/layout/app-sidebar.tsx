@@ -1,17 +1,16 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
-  Users,
   Columns3,
+  MessageSquare,
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { useNewLeadsCount } from "@/hooks/use-new-leads-count";
 
 interface AppSidebarProps {
   open: boolean;
@@ -25,10 +24,9 @@ const navItems = [
     icon: LayoutDashboard,
   },
   {
-    href: "/leads",
-    label: "Leads",
-    icon: Users,
-    showBadge: true,
+    href: "/conversations",
+    label: "Conversas",
+    icon: MessageSquare,
   },
   {
     href: "/kanban",
@@ -39,7 +37,6 @@ const navItems = [
 
 export function AppSidebar({ open, onClose }: AppSidebarProps) {
   const pathname = usePathname();
-  const newCount = useNewLeadsCount();
 
   return (
     <>
@@ -60,9 +57,13 @@ export function AppSidebar({ open, onClose }: AppSidebarProps) {
         {/* Header do sidebar */}
         <div className="flex h-16 items-center justify-between border-b px-4">
           <Link href="/dashboard" className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold text-sm">
-              L
-            </div>
+            <Image
+              src="/favicon-96x96.png"
+              alt="Leguiard CRM"
+              width={32}
+              height={32}
+              className="rounded-lg"
+            />
             <span className="text-lg font-bold">Leguiard CRM</span>
           </Link>
           <Button
@@ -96,14 +97,6 @@ export function AppSidebar({ open, onClose }: AppSidebarProps) {
               >
                 <item.icon className="h-5 w-5" />
                 <span className="flex-1">{item.label}</span>
-                {item.showBadge && newCount > 0 && (
-                  <Badge
-                    variant="destructive"
-                    className="h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs"
-                  >
-                    {newCount > 99 ? "99+" : newCount}
-                  </Badge>
-                )}
               </Link>
             );
           })}
@@ -112,7 +105,7 @@ export function AppSidebar({ open, onClose }: AppSidebarProps) {
         {/* Footer */}
         <div className="border-t p-3">
           <p className="text-xs text-sidebar-foreground/50 text-center">
-            Leguiard CRM v1.0
+            Leguiard CRM v1.8
           </p>
         </div>
       </aside>

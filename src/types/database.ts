@@ -47,6 +47,7 @@ export interface Lead {
   created_at: string;
   ai_run_count: number;
   history_sync_needed: boolean;
+  conv_id: string | null;
 }
 
 export interface Interaction {

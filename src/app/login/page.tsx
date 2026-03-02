@@ -14,6 +14,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
+import Image from "next/image";
 
 export default function LoginPage() {
   return (
@@ -239,9 +240,21 @@ function LoginContent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">Leguiard CRM</CardTitle>
-          <CardDescription>Entre com suas credenciais para acessar o sistema</CardDescription>
+        <CardHeader className="text-center space-y-4">
+          <div className="flex justify-center">
+            <Image
+              src="/favicon-96x96.png"
+              alt="Leguiard CRM"
+              width={64}
+              height={64}
+              className="rounded-xl"
+              priority
+            />
+          </div>
+          <div>
+            <CardTitle className="text-2xl font-bold">Leguiard CRM</CardTitle>
+            <CardDescription>Entre com suas credenciais para acessar o sistema</CardDescription>
+          </div>
         </CardHeader>
         <CardContent>
           {isOnboard ? (

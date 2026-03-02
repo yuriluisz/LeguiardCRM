@@ -175,7 +175,7 @@ export default function KanbanPage() {
                     <KanbanCard
                       key={lead.id}
                       lead={lead}
-                      onClick={() => router.push(`/leads/${lead.id}`)}
+                      onClick={() => router.push(`/conversations?lead=${lead.id}`)}
                     />
                   ))}
                 </KanbanColumn>

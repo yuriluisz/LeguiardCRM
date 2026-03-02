@@ -85,7 +85,7 @@ export async function PATCH(
 
 
     // Apenas campos permitidos
-    const allowedFields = ["status_kanban", "ai_active", "not_a_lead"];
+    const allowedFields = ["status_kanban", "ai_active", "not_a_lead", "conv_id", "custom_data"];
     const updates: Record<string, unknown> = {};
 
     for (const field of allowedFields) {
