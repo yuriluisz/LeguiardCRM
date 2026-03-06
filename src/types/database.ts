@@ -1,17 +1,32 @@
-export type StatusKanban =
-  | "novo"
-  | "contato"
-  | "qualificado"
-  | "visita"
-  | "proposta"
-  | "fechado"
-  | "perdido";
+/** StatusKanban agora é dinâmico — qualquer string válida conforme kanban_config do tenant */
+export type StatusKanban = string;
 
 export type Temperature = "frio" | "morno" | "quente";
 
 export type InteractionRole = "user" | "assistant";
 
 export type CrmFieldType = "text" | "number" | "select" | "date";
+
+// --- Kanban Config (dinâmico por tenant) ---
+
+export interface KanbanColumnConfig {
+  key: string;
+  label: string;
+  order: number;
+  ai_description: string;
+  color?: string;
+  is_final?: boolean;
+  followup?: {
+    enabled: boolean;
+    delay_hours: number;
+    max_attempts: number;
+    ai_prompt_hint?: string;
+  };
+}
+
+export interface KanbanConfig {
+  columns: KanbanColumnConfig[];
+}
 
 export interface CrmField {
   key: string;
@@ -28,6 +43,7 @@ export interface Tenant {
   name: string;
   description: string | null;
   crm_config: CrmConfig | null;
+  kanban_config: KanbanConfig | null;
   plan_level: string | null;
 }
 
@@ -88,26 +104,52 @@ export interface DashboardMetrics {
   newSinceLastLogin: number;
 }
 
-// Kanban column config
-export const KANBAN_COLUMNS: { key: StatusKanban; label: string }[] = [
-  { key: "novo", label: "Novo" },
-  { key: "contato", label: "Contato" },
-  { key: "qualificado", label: "Qualificado" },
-  { key: "visita", label: "Visita" },
-  { key: "proposta", label: "Proposta" },
-  { key: "fechado", label: "Fechado" },
-  { key: "perdido", label: "Perdido" },
+// Kanban column config — DEFAULT (fallback quando tenant não tem kanban_config)
+export const DEFAULT_KANBAN_COLUMNS: KanbanColumnConfig[] = [
+  { key: "novo", label: "Novo", order: 1, ai_description: "Lead acabou de chegar, sem nenhum contato realizado.", color: "#3b82f6" },
+  { key: "contato", label: "Contato", order: 2, ai_description: "Lead já foi contactado pelo menos uma vez.", color: "#8b5cf6" },
+  { key: "qualificado", label: "Qualificado", order: 3, ai_description: "Lead demonstrou interesse real.", color: "#06b6d4" },
+  { key: "visita", label: "Visita", order: 4, ai_description: "Lead agendou ou confirmou visita/reunião.", color: "#f59e0b" },
+  { key: "proposta", label: "Proposta", order: 5, ai_description: "Proposta comercial foi enviada ou discutida.", color: "#f97316" },
+  { key: "fechado", label: "Fechado", order: 6, ai_description: "Negócio concluído com sucesso.", color: "#22c55e", is_final: true },
+  { key: "perdido", label: "Perdido", order: 7, ai_description: "Lead desistiu ou não tem mais interesse.", color: "#ef4444", is_final: true },
 ];
 
-export const STATUS_LABELS: Record<StatusKanban, string> = {
-  novo: "Novo",
-  contato: "Contato",
-  qualificado: "Qualificado",
-  visita: "Visita",
-  proposta: "Proposta",
-  fechado: "Fechado",
-  perdido: "Perdido",
-};
+/** @deprecated Use getKanbanColumns(tenant) */
+export const KANBAN_COLUMNS: { key: string; label: string }[] = DEFAULT_KANBAN_COLUMNS.map(c => ({ key: c.key, label: c.label }));
+
+/** @deprecated Use getStatusLabel(tenant, key) */
+export const STATUS_LABELS: Record<string, string> = Object.fromEntries(
+  DEFAULT_KANBAN_COLUMNS.map(c => [c.key, c.label])
+);
+
+// --- Helpers para acessar config dinâmica ---
+
+/** Retorna as colunas do kanban do tenant, ou o default */
+export function getKanbanColumns(tenant: Tenant | null): KanbanColumnConfig[] {
+  if (tenant?.kanban_config?.columns?.length) {
+    return [...tenant.kanban_config.columns].sort((a, b) => a.order - b.order);
+  }
+  return DEFAULT_KANBAN_COLUMNS;
+}
+
+/** Retorna o label de um status baseado na config do tenant */
+export function getStatusLabel(tenant: Tenant | null, key: string): string {
+  const cols = getKanbanColumns(tenant);
+  return cols.find(c => c.key === key)?.label ?? key;
+}
+
+/** Retorna a cor de um status baseado na config do tenant */
+export function getStatusColor(tenant: Tenant | null, key: string): string {
+  const cols = getKanbanColumns(tenant);
+  return cols.find(c => c.key === key)?.color ?? "#6b7280";
+}
+
+/** Verifica se um status é válido para o tenant */
+export function isValidStatus(tenant: Tenant | null, key: string): boolean {
+  const cols = getKanbanColumns(tenant);
+  return cols.some(c => c.key === key);
+}
 
 export const TEMPERATURE_LABELS: Record<string, string> = {
   frio: "Frio",

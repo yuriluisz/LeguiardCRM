@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useTenant } from "@/components/providers/tenant-provider";
 import type { Lead, StatusKanban } from "@/types/database";
 import {
-  KANBAN_COLUMNS,
+  getKanbanColumns,
   TEMPERATURE_LABELS,
   TEMPERATURE_COLORS,
 } from "@/types/database";
@@ -158,8 +158,8 @@ export default function KanbanPage() {
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
-          <div className="flex gap-4 pb-4" style={{ minWidth: "fit-content" }}>
-            {KANBAN_COLUMNS.map((column) => {
+          <div className="flex gap-3 pb-4" style={{ minWidth: "fit-content" }}>
+            {getKanbanColumns(selectedTenant).map((column) => {
               const columnLeads = leads.filter(
                 (l) => l.status_kanban === column.key
               );
@@ -170,6 +170,7 @@ export default function KanbanPage() {
                   id={column.key}
                   title={column.label}
                   count={columnLeads.length}
+                  color={column.color}
                 >
                   {columnLeads.map((lead) => (
                     <KanbanCard
@@ -185,19 +186,19 @@ export default function KanbanPage() {
 
           <DragOverlay>
             {activeLead ? (
-              <Card className="w-64 rotate-3 opacity-90 shadow-xl">
+              <Card className="w-72 rotate-2 opacity-95 shadow-2xl border-primary/30 ring-2 ring-primary/20">
                 <CardContent className="p-3">
-                  <p className="font-medium text-sm">
+                  <p className="font-semibold text-sm">
                     {activeLead.name || "Sem nome"}
                   </p>
-                  <p className="text-xs text-muted-foreground font-mono">
+                  <p className="text-[11px] text-muted-foreground font-mono mt-0.5">
                     {activeLead.phone}
                   </p>
                   {activeLead.temperature && (
                     <Badge
                       className={`mt-2 ${
                         TEMPERATURE_COLORS[activeLead.temperature]
-                      } text-white text-xs`}
+                      } text-white text-xs shadow-sm`}
                     >
                       {TEMPERATURE_LABELS[activeLead.temperature]}
                     </Badge>
@@ -228,9 +229,17 @@ function KanbanSkeleton() {
         <Skeleton className="h-8 w-32" />
         <Skeleton className="mt-2 h-4 w-48" />
       </div>
-      <div className="flex gap-4">
+      <div className="flex gap-3">
         {Array.from({ length: 7 }).map((_, i) => (
-          <Skeleton key={i} className="h-96 w-64 shrink-0" />
+          <div key={i} className="flex w-72 shrink-0 flex-col gap-2.5 rounded-xl border bg-muted/20 p-2 pt-4">
+            <div className="flex items-center justify-between px-1">
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-5 w-5 rounded-full" />
+            </div>
+            {Array.from({ length: 3 - (i % 2) }).map((_, j) => (
+              <Skeleton key={j} className="h-20 w-full rounded-lg" />
+            ))}
+          </div>
         ))}
       </div>
     </div>

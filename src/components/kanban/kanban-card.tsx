@@ -8,7 +8,7 @@ import type { Lead } from "@/types/database";
 import { TEMPERATURE_LABELS, TEMPERATURE_COLORS } from "@/types/database";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Bot } from "lucide-react";
+import { Bot, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface KanbanCardProps {
@@ -33,11 +33,10 @@ export function KanbanCard({ lead, onClick }: KanbanCardProps) {
       {...listeners}
       {...attributes}
       className={cn(
-        "cursor-grab transition-shadow hover:shadow-md active:cursor-grabbing",
-        isDragging && "opacity-50 shadow-lg"
+        "cursor-grab border-border/50 bg-card transition-all duration-150 hover:shadow-md hover:border-border active:cursor-grabbing",
+        isDragging && "opacity-40 shadow-xl scale-105 rotate-1"
       )}
       onClick={(e) => {
-        // Só navega se não estiver arrastando
         if (!isDragging) {
           e.stopPropagation();
           onClick();
@@ -47,35 +46,39 @@ export function KanbanCard({ lead, onClick }: KanbanCardProps) {
       <CardContent className="p-3 space-y-2">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
-            <p className="font-medium text-sm truncate">
+            <p className="font-semibold text-sm truncate leading-tight">
               {lead.name || "Sem nome"}
             </p>
-            <p className="text-xs text-muted-foreground font-mono">
+            <p className="text-[11px] text-muted-foreground font-mono mt-0.5">
               {lead.phone}
             </p>
           </div>
           {lead.ai_active && (
-            <Bot className="h-4 w-4 shrink-0 text-green-500" />
+            <div className="flex h-5 w-5 items-center justify-center rounded-full bg-green-500/10">
+              <Bot className="h-3 w-3 shrink-0 text-green-500" />
+            </div>
           )}
         </div>
 
-        <div className="flex flex-wrap items-center gap-1.5">
-          {lead.temperature && (
+        {lead.temperature && (
+          <div className="flex flex-wrap items-center gap-1.5">
             <Badge
-              className={`${TEMPERATURE_COLORS[lead.temperature]} text-white text-[10px] px-1.5 py-0`}
+              className={`${TEMPERATURE_COLORS[lead.temperature]} text-white text-[10px] px-1.5 py-0 shadow-sm`}
             >
               {TEMPERATURE_LABELS[lead.temperature]}
             </Badge>
-          )}
-          {/* removed: new-since-last-login badge */}
-        </div>
+          </div>
+        )}
 
         {lead.last_interaction && (
-          <p className="text-[10px] text-muted-foreground">
-            {format(new Date(lead.last_interaction), "dd/MM HH:mm", {
-              locale: ptBR,
-            })}
-          </p>
+          <div className="flex items-center gap-1 text-muted-foreground">
+            <Clock className="h-3 w-3" />
+            <p className="text-[10px]">
+              {format(new Date(lead.last_interaction), "dd/MM HH:mm", {
+                locale: ptBR,
+              })}
+            </p>
+          </div>
         )}
       </CardContent>
     </Card>

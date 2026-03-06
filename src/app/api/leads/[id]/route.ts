@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { STATUS_LABELS } from "@/types/database";
+import { DEFAULT_KANBAN_COLUMNS } from "@/types/database";
 
 export async function GET(
   _request: NextRequest,
@@ -45,10 +45,10 @@ export async function GET(
 
     if (interError) throw interError;
 
-    // Buscar dados do tenant (para crm_config)
+    // Buscar dados do tenant (para crm_config e kanban_config)
     const { data: tenant } = await supabase
       .from("tenants")
-      .select("crm_config")
+      .select("crm_config, kanban_config")
       .eq("id", lead.tenant_id)
       .single();
 
@@ -56,6 +56,7 @@ export async function GET(
       lead,
       interactions: interactions || [],
       crmConfig: tenant?.crm_config || null,
+      kanbanConfig: tenant?.kanban_config || null,
     });
   } catch (error) {
     console.error("Erro ao buscar lead:", error);
@@ -102,12 +103,36 @@ export async function PATCH(
       }
 
       const key = String(raw).toLowerCase();
-      // STATUS_LABELS maps keys como 'novo' -> 'Novo'
-      if (key in STATUS_LABELS) {
-        updates.status_kanban = (STATUS_LABELS as Record<string, string>)[key];
+
+      // Buscar lead para pegar tenant_id
+      const { data: existingLead } = await supabase
+        .from("leads")
+        .select("tenant_id")
+        .eq("id", id)
+        .single();
+
+      if (!existingLead) {
+        return NextResponse.json({ error: "Lead não encontrado" }, { status: 404 });
+      }
+
+      // Buscar kanban_config do tenant para validar status
+      const { data: tenant } = await supabase
+        .from("tenants")
+        .select("kanban_config")
+        .eq("id", existingLead.tenant_id)
+        .single();
+
+      const columns = tenant?.kanban_config?.columns ?? DEFAULT_KANBAN_COLUMNS;
+      const validColumn = columns.find((c: { key: string; label: string }) => c.key === key);
+
+      if (validColumn) {
+        // Salva no formato capitalizado que o DB espera
+        updates.status_kanban = validColumn.label;
       } else {
-        // Try to convert to capitalized form as a fallback
-        updates.status_kanban = `${raw.charAt(0).toUpperCase()}${raw.slice(1)}`;
+        return NextResponse.json(
+          { error: `status_kanban inválido: "${key}" não existe na configuração do kanban` },
+          { status: 400 }
+        );
       }
     }
 

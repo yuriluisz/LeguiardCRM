@@ -4,7 +4,7 @@ import { useEffect, useState, useRef, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useTenant } from "@/components/providers/tenant-provider";
 import type { Lead, Interaction, CrmConfig, StatusKanban } from "@/types/database";
-import { KANBAN_COLUMNS, STATUS_LABELS } from "@/types/database";
+import { getKanbanColumns, getStatusLabel } from "@/types/database";
 import { CustomDataFields } from "@/components/leads/custom-data-fields";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -297,7 +297,7 @@ function ConversationsContent() {
 
       if (!res.ok) throw new Error();
 
-      toast.success(`Status alterado para ${STATUS_LABELS[newStatus]}`);
+      toast.success(`Status alterado para ${getStatusLabel(selectedTenant, newStatus)}`);
     } catch {
       // Rollback
       setLeads((prev) =>
@@ -690,7 +690,7 @@ function ConversationsContent() {
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                {KANBAN_COLUMNS.map((col) => (
+                                {getKanbanColumns(selectedTenant).map((col) => (
                                   <SelectItem key={col.key} value={col.key}>
                                     {col.label}
                                   </SelectItem>

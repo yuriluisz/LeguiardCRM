@@ -16,26 +16,18 @@ import {
   ResponsiveContainer,
   Cell,
 } from "recharts";
-import { STATUS_LABELS, type StatusKanban } from "@/types/database";
+import { getStatusLabel, getStatusColor, type Tenant } from "@/types/database";
 
 interface StatusDistributionChartProps {
   data: { status: string; count: number }[];
+  tenant: Tenant | null;
 }
 
-const STATUS_COLORS: Record<string, string> = {
-  novo: "#3b82f6",
-  contato: "#8b5cf6",
-  qualificado: "#06b6d4",
-  visita: "#f59e0b",
-  proposta: "#f97316",
-  fechado: "#22c55e",
-  perdido: "#ef4444",
-};
-
-export function StatusDistributionChart({ data }: StatusDistributionChartProps) {
+export function StatusDistributionChart({ data, tenant }: StatusDistributionChartProps) {
   const formattedData = data.map((item) => ({
     ...item,
-    label: STATUS_LABELS[item.status as StatusKanban] || item.status,
+    label: getStatusLabel(tenant, item.status),
+    color: getStatusColor(tenant, item.status),
   }));
 
   return (
@@ -71,7 +63,7 @@ export function StatusDistributionChart({ data }: StatusDistributionChartProps) 
                 {formattedData.map((entry, index) => (
                   <Cell
                     key={`cell-${index}`}
-                    fill={STATUS_COLORS[entry.status] || "#6b7280"}
+                    fill={entry.color}
                   />
                 ))}
               </Bar>
