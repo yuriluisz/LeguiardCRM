@@ -770,11 +770,6 @@ export default function FollowupSettingsPage() {
         <ScrollBar orientation="horizontal" />
       </ScrollArea>
 
-      <p className="text-xs text-muted-foreground">
-        Timezone operacional atual: {TZ_LABEL}. O texto de prompt de follow-up é injetado
-        automaticamente ao salvar.
-      </p>
-
       <Dialog open={stageDialogOpen} onOpenChange={setStageDialogOpen}>
         <DialogContent>
           <DialogHeader>
