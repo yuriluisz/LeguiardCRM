@@ -700,6 +700,14 @@ function ConversationsContent() {
                           </div>
                           <div className="flex items-center justify-between">
                             <span className="text-sm text-muted-foreground">
+                              Etapa Follow-up
+                            </span>
+                            <Badge variant="outline" className="max-w-[180px] truncate">
+                              {selectedLead.follow_stage || "Sem etapa"}
+                            </Badge>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-muted-foreground">
                               Temperatura
                             </span>
                             <div className="flex items-center gap-1.5">

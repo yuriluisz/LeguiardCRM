@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   Columns3,
   MessageSquare,
+  Workflow,
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -32,6 +33,11 @@ const navItems = [
     href: "/kanban",
     label: "Kanban",
     icon: Columns3,
+  },
+  {
+    href: "/followup",
+    label: "Follow-up",
+    icon: Workflow,
   },
 ];
 

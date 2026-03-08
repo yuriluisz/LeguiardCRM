@@ -28,6 +28,35 @@ export interface KanbanConfig {
   columns: KanbanColumnConfig[];
 }
 
+export interface AiConfigFollowup {
+  model: string;
+  temperature: number;
+  instructions: string;
+  // Legacy read fallback only. Do not persist as official field.
+  system_prompt?: string;
+}
+
+export interface FollowKanbanColumnConfig {
+  key: string;
+  label: string;
+  order: number;
+  ai_description: string;
+  color?: string;
+  is_final?: boolean;
+  delay_hours: number;
+}
+
+export interface FollowConfig {
+  kanban: {
+    columns: FollowKanbanColumnConfig[];
+  };
+  business_hours: {
+    start: string;
+    end: string;
+    days: number[];
+  };
+}
+
 export interface CrmField {
   key: string;
   type: CrmFieldType;
@@ -44,6 +73,9 @@ export interface Tenant {
   description: string | null;
   crm_config: CrmConfig | null;
   kanban_config: KanbanConfig | null;
+  ai_config_followup: AiConfigFollowup | null;
+  follow_config: FollowConfig | null;
+  follow_status: boolean | null;
   plan_level: string | null;
 }
 
@@ -64,6 +96,7 @@ export interface Lead {
   ai_run_count: number;
   history_sync_needed: boolean;
   conv_id: string | null;
+  follow_stage: string | null;
 }
 
 export interface Interaction {
@@ -114,6 +147,38 @@ export const DEFAULT_KANBAN_COLUMNS: KanbanColumnConfig[] = [
   { key: "fechado", label: "Fechado", order: 6, ai_description: "Negócio concluído com sucesso.", color: "#22c55e", is_final: true },
   { key: "perdido", label: "Perdido", order: 7, ai_description: "Lead desistiu ou não tem mais interesse.", color: "#ef4444", is_final: true },
 ];
+
+export const DEFAULT_FOLLOWUP_COLUMNS: FollowKanbanColumnConfig[] = [
+  {
+    key: "follow-1",
+    label: "Follow 1",
+    order: 1,
+    ai_description: "Primeira etapa de follow-up.",
+    delay_hours: 24,
+    color: "#3b82f6",
+  },
+  {
+    key: "follow-final",
+    label: "Final do Follow",
+    order: 2,
+    ai_description:
+      "Etapa final de follow-up, encerra a sequencia e deixa canal aberto.",
+    delay_hours: 24,
+    color: "#22c55e",
+    is_final: true,
+  },
+];
+
+export const DEFAULT_FOLLOW_CONFIG: FollowConfig = {
+  kanban: {
+    columns: DEFAULT_FOLLOWUP_COLUMNS,
+  },
+  business_hours: {
+    start: "08:00",
+    end: "22:00",
+    days: [1, 2, 3, 4, 5],
+  },
+};
 
 /** @deprecated Use getKanbanColumns(tenant) */
 export const KANBAN_COLUMNS: { key: string; label: string }[] = DEFAULT_KANBAN_COLUMNS.map(c => ({ key: c.key, label: c.label }));
