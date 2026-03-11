@@ -91,11 +91,19 @@ function normalizeColumns(
   return normalized;
 }
 
+function resolveInitialDelay(columns: FollowKanbanColumnConfig[]): string {
+  const firstColumn = [...columns].sort((a, b) => a.order - b.order)[0];
+  const delay = Number(firstColumn?.delay_hours ?? 0);
+  const safeDelay = Number.isFinite(delay) ? Math.max(0, Math.trunc(delay)) : 0;
+  return String(safeDelay);
+}
+
 export function sanitizeFollowConfig(input: FollowConfig | null | undefined): FollowConfig {
   const columns = normalizeColumns(input?.kanban?.columns);
   const start = normalizeHour(input?.business_hours?.start ?? "", "08:00");
   const end = normalizeHour(input?.business_hours?.end ?? "", "22:00");
   const days = normalizeDays(input?.business_hours?.days);
+  const horaDiff = resolveInitialDelay(columns);
 
   return {
     kanban: {
@@ -105,6 +113,7 @@ export function sanitizeFollowConfig(input: FollowConfig | null | undefined): Fo
       start,
       end,
       days,
+      hora_diff: horaDiff,
     },
   };
 }

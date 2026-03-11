@@ -379,6 +379,7 @@ export default function FollowupSettingsPage() {
     start: "08:00",
     end: "22:00",
     days: [1, 2, 3, 4, 5],
+    hora_diff: "24",
   });
 
   const [stageDialogOpen, setStageDialogOpen] = useState(false);

@@ -54,6 +54,7 @@ export interface FollowConfig {
     start: string;
     end: string;
     days: number[];
+    hora_diff: string;
   };
 }
 
@@ -177,6 +178,7 @@ export const DEFAULT_FOLLOW_CONFIG: FollowConfig = {
     start: "08:00",
     end: "22:00",
     days: [1, 2, 3, 4, 5],
+    hora_diff: "24",
   },
 };
 
