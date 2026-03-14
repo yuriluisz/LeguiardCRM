@@ -57,7 +57,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
           .eq("crm_user_id", user.id);
 
         if (userTenants && userTenants.length > 0) {
-          const tenantIds = userTenants.map((ut) => ut.tenant_id);
+          const tenantIds = userTenants.map((ut: { tenant_id: string }) => ut.tenant_id);
           const { data } = await supabase
             .from("tenants")
             .select("*")

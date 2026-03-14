@@ -49,6 +49,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { createLeaderTabCoordinator } from "@/lib/realtime/leader-tab";
+import type { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
 
 function ConversationsContent() {
   const searchParams = useSearchParams();
@@ -214,7 +215,7 @@ function ConversationsContent() {
           schema: "public",
           table: "leads",
         },
-        (payload) => {
+        (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
           const payloadTenantId =
             (payload.new as { tenant_id?: string } | null)?.tenant_id ??
             (payload.old as { tenant_id?: string } | null)?.tenant_id;
@@ -239,7 +240,7 @@ function ConversationsContent() {
             return;
           }
 
-          const incoming = payload.new as Lead;
+          const incoming = payload.new as unknown as Lead;
           if (!incoming?.id) return;
 
           const normalized = normalizeLead(incoming);
@@ -260,7 +261,7 @@ function ConversationsContent() {
           }
         }
       )
-      .subscribe((status, error) => {
+      .subscribe((status: string, error?: Error) => {
         if (status === "SUBSCRIBED") {
           leadsRealtimeHealthyRef.current = true;
           return;
@@ -310,7 +311,7 @@ function ConversationsContent() {
           schema: "public",
           table: "interactions",
         },
-        (payload) => {
+        (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
           const payloadLeadId =
             (payload.new as { lead_id?: string } | null)?.lead_id ??
             (payload.old as { lead_id?: string } | null)?.lead_id;
@@ -330,7 +331,7 @@ function ConversationsContent() {
             return;
           }
 
-          const incoming = payload.new as Interaction;
+          const incoming = payload.new as unknown as Interaction;
           if (!incoming?.id) return;
 
           if (payload.eventType === "UPDATE") {
@@ -349,7 +350,7 @@ function ConversationsContent() {
           });
         }
       )
-      .subscribe((status, error) => {
+      .subscribe((status: string, error?: Error) => {
         if (status === "SUBSCRIBED") {
           interactionsRealtimeHealthyRef.current = true;
           return;

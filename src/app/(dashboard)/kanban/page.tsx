@@ -29,6 +29,7 @@ import { KanbanCard } from "@/components/kanban/kanban-card";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { createLeaderTabCoordinator } from "@/lib/realtime/leader-tab";
+import type { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
 
 export default function KanbanPage() {
   const router = useRouter();
@@ -121,7 +122,7 @@ export default function KanbanPage() {
           schema: "public",
           table: "leads",
         },
-        (payload) => {
+        (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
           const payloadTenantId =
             (payload.new as { tenant_id?: string } | null)?.tenant_id ??
             (payload.old as { tenant_id?: string } | null)?.tenant_id;
@@ -141,7 +142,7 @@ export default function KanbanPage() {
             return;
           }
 
-          const incoming = payload.new as Lead;
+          const incoming = payload.new as unknown as Lead;
           if (!incoming?.id) return;
 
           const normalizedLead: Lead = {
@@ -163,7 +164,7 @@ export default function KanbanPage() {
           });
         }
       )
-      .subscribe((status, error) => {
+      .subscribe((status: string, error?: Error) => {
         if (status === "SUBSCRIBED") {
           realtimeHealthyRef.current = true;
           return;
