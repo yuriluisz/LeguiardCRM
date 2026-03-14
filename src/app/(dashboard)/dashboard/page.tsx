@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useTenant } from "@/components/providers/tenant-provider";
 import type { DashboardMetrics } from "@/types/database";
 import { MetricsCards } from "@/components/dashboard/metrics-cards";
@@ -8,16 +8,18 @@ import { LeadsOverTimeChart } from "@/components/dashboard/leads-over-time-chart
 import { TimeSeriesChart } from "@/components/dashboard/time-series-chart";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { createClient } from "@/lib/supabase/client";
 
 export default function DashboardPage() {
   const { selectedTenant, loading: tenantLoading } = useTenant();
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [rangeDays, setRangeDays] = useState<number>(7);
+  const refreshTimerRef = useRef<number | null>(null);
 
-  const fetchMetrics = useCallback(async () => {
+  const fetchMetrics = useCallback(async (silent = false) => {
     if (!selectedTenant) return;
-    setLoading(true);
+    if (!silent) setLoading(true);
 
     try {
       const res = await fetch(
@@ -30,13 +32,66 @@ export default function DashboardPage() {
     } catch (error) {
       console.error("Erro ao carregar métricas:", error);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [selectedTenant]);
 
   useEffect(() => {
     fetchMetrics();
   }, [fetchMetrics]);
+
+  useEffect(() => {
+    if (!selectedTenant) return;
+
+    const supabase = createClient();
+    const leadsTopic = `dashboard-leads-${selectedTenant.id}-${Math.random().toString(36).slice(2)}`;
+    const interactionsTopic = `dashboard-interactions-${selectedTenant.id}-${Math.random().toString(36).slice(2)}`;
+    const scheduleRefresh = () => {
+      if (refreshTimerRef.current) {
+        window.clearTimeout(refreshTimerRef.current);
+      }
+
+      refreshTimerRef.current = window.setTimeout(() => {
+        fetchMetrics(true);
+      }, 350);
+    };
+
+    const leadsChannel = supabase
+      .channel(leadsTopic)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "leads",
+          filter: `tenant_id=eq.${selectedTenant.id}`,
+        },
+        scheduleRefresh
+      )
+      .subscribe();
+
+    const interactionsChannel = supabase
+      .channel(interactionsTopic)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "interactions",
+        },
+        scheduleRefresh
+      )
+      .subscribe();
+
+    return () => {
+      if (refreshTimerRef.current) {
+        window.clearTimeout(refreshTimerRef.current);
+        refreshTimerRef.current = null;
+      }
+      void supabase.removeChannel(leadsChannel);
+      void supabase.removeChannel(interactionsChannel);
+    };
+  }, [fetchMetrics, selectedTenant]);
 
   if (tenantLoading) {
     return <DashboardSkeleton />;

@@ -71,3 +71,48 @@ npm start
 ```
 
 O projeto é deployado em VPS com Node.js via EasyPanel.
+
+## Backup e Restore (100% logico)
+
+Para backup fiel da estrutura + dados, use `pg_dump/pg_restore` (nao apenas SQL de introspeccao).
+
+### Pre-requisitos
+
+- PostgreSQL client tools no PATH (`pg_dump`, `pg_restore`, `psql`)
+- URL direta do banco (recomendado, evitando pooler quando possivel)
+- Variavel de ambiente:
+
+```bash
+SUPABASE_DB_URL=postgresql://...
+SUPABASE_RESTORE_DB_URL=postgresql://... # opcional
+```
+
+### Gerar backup
+
+```powershell
+pwsh ./scripts/db/backup-full.ps1
+```
+
+O script gera em `backups/db-YYYYMMDD-HHMMSS`:
+
+- `full.dump` (backup principal)
+- `schema.sql` (schema legivel)
+- `globals.sql` (roles/tablespaces, quando permitido)
+- `manifest.txt` com hashes SHA256
+
+### Restaurar backup
+
+```powershell
+pwsh ./scripts/db/restore-full.ps1 -BackupDir "backups/db-YYYYMMDD-HHMMSS"
+```
+
+Opcoes uteis:
+
+- `-NoOwner` para restaurar sem ownership
+- `-SkipGlobals` para ignorar restore de roles/tablespaces
+
+### Validar restore
+
+```powershell
+psql "$env:SUPABASE_RESTORE_DB_URL" -f ./scripts/db/verify-backup.sql
+```

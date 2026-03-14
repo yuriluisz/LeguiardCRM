@@ -1,12 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { ensureTenantAccess, getAuthenticatedContext } from "@/lib/auth/tenant-access";
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const { supabase, user, isAdmin } = await getAuthenticatedContext();
 
     if (!user) {
       return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
@@ -22,20 +19,27 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Total de leads
-    const { count: totalLeads } = await supabase
-      .from("leads")
-      .select("*", { count: "exact", head: true })
-      .eq("tenant_id", tenantId);
+    const canAccess = await ensureTenantAccess(user.id, tenantId, isAdmin);
+    if (!canAccess) {
+      return NextResponse.json({ error: "Sem acesso a este tenant" }, { status: 403 });
+    }
 
-    // Leads novos (últimos 7 dias)
+    // Total de leads
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    const { count: newLeadsLast7Days } = await supabase
-      .from("leads")
-      .select("*", { count: "exact", head: true })
-      .eq("tenant_id", tenantId)
-      .gte("created_at", sevenDaysAgo.toISOString());
+
+    // Total de leads + leads novos em paralelo
+    const [{ count: totalLeads }, { count: newLeadsLast7Days }] = await Promise.all([
+      supabase
+        .from("leads")
+        .select("*", { count: "exact", head: true })
+        .eq("tenant_id", tenantId),
+      supabase
+        .from("leads")
+        .select("*", { count: "exact", head: true })
+        .eq("tenant_id", tenantId)
+        .gte("created_at", sevenDaysAgo.toISOString()),
+    ]);
 
     // Fetch leads created or interacted within the last 30 days for time series
     const thirtyDaysAgo = new Date();

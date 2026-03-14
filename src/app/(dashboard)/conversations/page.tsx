@@ -47,6 +47,8 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { createClient } from "@/lib/supabase/client";
+import { createLeaderTabCoordinator } from "@/lib/realtime/leader-tab";
 
 function ConversationsContent() {
   const searchParams = useSearchParams();
@@ -69,16 +71,48 @@ function ConversationsContent() {
   const [savingStatus, setSavingStatus] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const initialLeadLoaded = useRef(false);
+  const leadsRealtimeHealthyRef = useRef(false);
+  const interactionsRealtimeHealthyRef = useRef(false);
+  const leadsFetchInFlightRef = useRef(false);
+  const lastLeadsSilentSyncAtRef = useRef(0);
+  const interactionsFetchInFlightRef = useRef(false);
+  const lastInteractionsSilentSyncAtRef = useRef(0);
+
+  const normalizeLead = useCallback((lead: Lead): Lead => {
+    return {
+      ...lead,
+      status_kanban: lead.status_kanban
+        ? String(lead.status_kanban).toLowerCase()
+        : lead.status_kanban,
+    };
+  }, []);
 
   // Fetch leads for selected tenant
-  const fetchLeads = useCallback(async () => {
+  const fetchLeads = useCallback(async (options?: { showLoading?: boolean }) => {
     if (!selectedTenant) return [];
-    setLoading(true);
+    const showLoading = options?.showLoading ?? false;
+    const now = Date.now();
+
+    if (!showLoading) {
+      if (leadsFetchInFlightRef.current) {
+        return [];
+      }
+
+      if (now - lastLeadsSilentSyncAtRef.current < 45000) {
+        return [];
+      }
+    }
+
+    leadsFetchInFlightRef.current = true;
+    if (showLoading) {
+      setLoading(true);
+    }
 
     try {
       const params = new URLSearchParams({
         tenant_id: selectedTenant.id,
-        limit: "500",
+        limit: "300",
+        lite: "true",
       });
 
       const res = await fetch(`/api/leads?${params.toString()}`);
@@ -87,18 +121,67 @@ function ConversationsContent() {
       const data = await res.json();
       const fetchedLeads = (data.leads as Lead[]) ?? [];
       setLeads(fetchedLeads);
+      if (!showLoading) {
+        lastLeadsSilentSyncAtRef.current = Date.now();
+      }
       return fetchedLeads;
     } catch (error) {
       console.error("Erro ao buscar leads:", error);
       toast.error("Erro ao carregar leads");
       return [];
     } finally {
-      setLoading(false);
+      leadsFetchInFlightRef.current = false;
+      if (showLoading) {
+        setLoading(false);
+      }
     }
   }, [selectedTenant]);
 
+  const fetchLeadConversation = useCallback(
+    async (leadId: string, options?: { showLoading?: boolean }) => {
+      const showLoading = options?.showLoading ?? false;
+      if (showLoading) {
+        setLoadingChat(true);
+      }
+
+      try {
+        if (!showLoading) {
+          if (interactionsFetchInFlightRef.current) {
+            return;
+          }
+
+          const now = Date.now();
+          if (now - lastInteractionsSilentSyncAtRef.current < 30000) {
+            return;
+          }
+        }
+
+        interactionsFetchInFlightRef.current = true;
+        const res = await fetch(`/api/leads/${leadId}`);
+        if (!res.ok) throw new Error("Falha ao buscar interações");
+
+        const data = await res.json();
+        setInteractions((data.interactions as Interaction[]) ?? []);
+        setCrmConfig(data.crmConfig ?? null);
+        if (!showLoading) {
+          lastInteractionsSilentSyncAtRef.current = Date.now();
+        }
+      } catch (error) {
+        console.error("Erro ao buscar interações:", error);
+        toast.error("Erro ao carregar conversa");
+        setInteractions([]);
+      } finally {
+        interactionsFetchInFlightRef.current = false;
+        if (showLoading) {
+          setLoadingChat(false);
+        }
+      }
+    },
+    []
+  );
+
   useEffect(() => {
-    fetchLeads().then((fetchedLeads) => {
+    fetchLeads({ showLoading: true }).then((fetchedLeads) => {
       // Auto-select lead from URL param
       if (leadParam && !initialLeadLoaded.current) {
         initialLeadLoaded.current = true;
@@ -111,10 +194,193 @@ function ConversationsContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchLeads]);
 
+  useEffect(() => {
+    if (!selectedTenant) return;
+
+    const supabase = createClient();
+    const channelTopic = `conversations-leads-${selectedTenant.id}-${Math.random().toString(36).slice(2)}`;
+    const coordinator = createLeaderTabCoordinator(`conversations-leads:${selectedTenant.id}`);
+    const leadsSyncTimer = window.setInterval(() => {
+      if (!document.hidden && !leadsRealtimeHealthyRef.current && coordinator.shouldRun()) {
+        void fetchLeads({ showLoading: false });
+      }
+    }, 60000);
+    const channel = supabase
+      .channel(channelTopic)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "leads",
+        },
+        (payload) => {
+          const payloadTenantId =
+            (payload.new as { tenant_id?: string } | null)?.tenant_id ??
+            (payload.old as { tenant_id?: string } | null)?.tenant_id;
+
+          if (!payloadTenantId) {
+            return;
+          }
+
+          if (String(payloadTenantId) !== selectedTenant.id) {
+            return;
+          }
+
+          if (payload.eventType === "DELETE") {
+            const oldLead = payload.old as { id?: string };
+            if (!oldLead.id) return;
+
+            setLeads((prev) => prev.filter((lead) => lead.id !== oldLead.id));
+            if (selectedLead?.id === oldLead.id) {
+              setSelectedLead(null);
+              setInteractions([]);
+            }
+            return;
+          }
+
+          const incoming = payload.new as Lead;
+          if (!incoming?.id) return;
+
+          const normalized = normalizeLead(incoming);
+
+          setLeads((prev) => {
+            const index = prev.findIndex((lead) => lead.id === normalized.id);
+            if (index === -1) {
+              return [normalized, ...prev];
+            }
+
+            const next = [...prev];
+            next[index] = { ...next[index], ...normalized };
+            return next;
+          });
+
+          if (selectedLead?.id === normalized.id) {
+            setSelectedLead((prev) => (prev ? { ...prev, ...normalized } : prev));
+          }
+        }
+      )
+      .subscribe((status, error) => {
+        if (status === "SUBSCRIBED") {
+          leadsRealtimeHealthyRef.current = true;
+          return;
+        }
+
+        if (status === "CLOSED") {
+          leadsRealtimeHealthyRef.current = false;
+          return;
+        }
+
+        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+          leadsRealtimeHealthyRef.current = false;
+          console.warn(
+            "Realtime conversations (leads) instavel:",
+            status,
+            error?.message || error || "sem detalhe"
+          );
+        }
+      });
+
+    return () => {
+      leadsRealtimeHealthyRef.current = false;
+      coordinator.release();
+      window.clearInterval(leadsSyncTimer);
+      void supabase.removeChannel(channel);
+    };
+  }, [fetchLeads, normalizeLead, selectedLead?.id, selectedTenant]);
+
+  useEffect(() => {
+    if (!selectedLead?.id) return;
+
+    const supabase = createClient();
+    const channelTopic = `conversations-interactions-${selectedLead.id}-${Math.random().toString(36).slice(2)}`;
+    const coordinator = createLeaderTabCoordinator(`conversations-interactions:${selectedLead.id}`);
+    const syncTimer = window.setInterval(() => {
+      if (!document.hidden && !interactionsRealtimeHealthyRef.current && coordinator.shouldRun()) {
+        void fetchLeadConversation(selectedLead.id, { showLoading: false });
+      }
+    }, 30000);
+
+    const channel = supabase
+      .channel(channelTopic)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "interactions",
+        },
+        (payload) => {
+          const payloadLeadId =
+            (payload.new as { lead_id?: string } | null)?.lead_id ??
+            (payload.old as { lead_id?: string } | null)?.lead_id;
+
+          if (!payloadLeadId) {
+            return;
+          }
+
+          if (String(payloadLeadId) !== selectedLead.id) {
+            return;
+          }
+
+          if (payload.eventType === "DELETE") {
+            const deleted = payload.old as { id?: string };
+            if (!deleted.id) return;
+            setInteractions((prev) => prev.filter((item) => item.id !== deleted.id));
+            return;
+          }
+
+          const incoming = payload.new as Interaction;
+          if (!incoming?.id) return;
+
+          if (payload.eventType === "UPDATE") {
+            setInteractions((prev) =>
+              prev.map((item) => (item.id === incoming.id ? { ...item, ...incoming } : item))
+            );
+            return;
+          }
+
+          setInteractions((prev) => {
+            if (prev.some((item) => item.id === incoming.id)) {
+              return prev;
+            }
+
+            return [...prev, incoming];
+          });
+        }
+      )
+      .subscribe((status, error) => {
+        if (status === "SUBSCRIBED") {
+          interactionsRealtimeHealthyRef.current = true;
+          return;
+        }
+
+        if (status === "CLOSED") {
+          interactionsRealtimeHealthyRef.current = false;
+          return;
+        }
+
+        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+          interactionsRealtimeHealthyRef.current = false;
+          console.warn(
+            "Realtime conversations (interactions) instavel:",
+            status,
+            error?.message || error || "sem detalhe"
+          );
+        }
+      });
+
+    return () => {
+      interactionsRealtimeHealthyRef.current = false;
+      coordinator.release();
+      window.clearInterval(syncTimer);
+      void supabase.removeChannel(channel);
+    };
+  }, [fetchLeadConversation, selectedLead?.id]);
+
   // Fetch interactions when a lead is selected
   async function selectLead(lead: Lead) {
     setSelectedLead(lead);
-    setLoadingChat(true);
     setCustomDataRaw(JSON.stringify(lead.custom_data ?? {}, null, 2));
     setShowCustomData(false);
 
@@ -128,20 +394,7 @@ function ConversationsContent() {
     params.set("lead", lead.id);
     router.replace(`/conversations?${params.toString()}`, { scroll: false });
 
-    try {
-      const res = await fetch(`/api/leads/${lead.id}`);
-      if (!res.ok) throw new Error("Falha ao buscar interações");
-
-      const data = await res.json();
-      setInteractions((data.interactions as Interaction[]) ?? []);
-      setCrmConfig(data.crmConfig ?? null);
-    } catch (error) {
-      console.error("Erro ao buscar interações:", error);
-      toast.error("Erro ao carregar conversa");
-      setInteractions([]);
-    } finally {
-      setLoadingChat(false);
-    }
+    await fetchLeadConversation(lead.id, { showLoading: true });
   }
 
   // Scroll to bottom on new messages

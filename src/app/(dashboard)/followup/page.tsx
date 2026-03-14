@@ -426,7 +426,7 @@ export default function FollowupSettingsPage() {
     try {
       const [tenantRes, leadsRes] = await Promise.all([
         fetch(`/api/tenants/${selectedTenant.id}`),
-        fetch(`/api/leads?tenant_id=${selectedTenant.id}&limit=500`),
+        fetch(`/api/leads?tenant_id=${selectedTenant.id}&limit=300&lite=true`),
       ]);
 
       if (!tenantRes.ok) {

@@ -34,9 +34,9 @@ export function LeadsOverTimeChart({ data }: LeadsOverTimeChartProps) {
         <CardTitle className="text-base">Leads ao Longo do Tempo</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="h-64">
+        <div className="dashboard-chart h-64" onMouseDown={(e) => e.preventDefault()}>
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={formattedData}>
+            <AreaChart accessibilityLayer={false} data={formattedData}>
               <defs>
                 <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />

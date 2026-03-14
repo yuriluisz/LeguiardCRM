@@ -1,12 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { ensureTenantAccess, getAuthenticatedContext } from "@/lib/auth/tenant-access";
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const { supabase, user, isAdmin } = await getAuthenticatedContext();
 
     if (!user) {
       return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
@@ -19,8 +16,13 @@ export async function GET(request: NextRequest) {
     const aiActive = searchParams.get("ai_active");
     const notALead = searchParams.get("not_a_lead");
     const search = searchParams.get("search");
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "50");
+    const lite = searchParams.get("lite") === "true";
+    const pageRaw = Number.parseInt(searchParams.get("page") || "1", 10);
+    const limitRaw = Number.parseInt(searchParams.get("limit") || "50", 10);
+    const page = Number.isFinite(pageRaw) && pageRaw > 0 ? pageRaw : 1;
+    const limit = Number.isFinite(limitRaw)
+      ? Math.min(Math.max(limitRaw, 1), 100)
+      : 50;
 
     if (!tenantId) {
       return NextResponse.json(
@@ -29,9 +31,18 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const canAccess = await ensureTenantAccess(user.id, tenantId, isAdmin);
+    if (!canAccess) {
+      return NextResponse.json({ error: "Sem acesso a este tenant" }, { status: 403 });
+    }
+
+    const selectFields = lite
+      ? "id,tenant_id,phone,name,email,status_kanban,temperature,ai_active,not_a_lead,last_interaction,created_at,ai_run_count,conv_id,follow_stage"
+      : "*";
+
     let query = supabase
       .from("leads")
-      .select("*", { count: "exact" })
+      .select(selectFields, { count: "exact" })
       .eq("tenant_id", tenantId)
       .order("last_interaction", { ascending: false, nullsFirst: false });
 

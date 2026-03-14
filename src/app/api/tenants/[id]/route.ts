@@ -1,30 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
-import { createClient as createServerClient } from "@/lib/supabase/server";
+import { ensureTenantAccess, getAuthenticatedContext } from "@/lib/auth/tenant-access";
 import {
   injectFollowupIntoPrompt,
   resolveFollowupInstructions,
   sanitizeFollowConfig,
 } from "@/lib/followup/kanban-injection";
 import type { AiConfigFollowup, FollowConfig } from "@/types/database";
-
-async function ensureTenantAccess(userId: string, tenantId: string, isAdmin: boolean) {
-  if (isAdmin) return true;
-
-  const supabase = await createServerClient();
-  const { data, error } = await supabase
-    .from("crm_user_tenants")
-    .select("id")
-    .eq("crm_user_id", userId)
-    .eq("tenant_id", tenantId)
-    .maybeSingle();
-
-  if (error) {
-    throw error;
-  }
-
-  return Boolean(data);
-}
 
 function getAdminClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -37,27 +19,6 @@ function getAdminClient() {
   return createAdminClient(url, serviceKey);
 }
 
-async function getAuthContext() {
-  const supabase = await createServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { user: null, isAdmin: false };
-  }
-
-  const { data: crmUser } = await supabase
-    .from("crm_users")
-    .select("is_admin")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  return {
-    user,
-    isAdmin: Boolean(crmUser?.is_admin),
-  };
-}
 
 function normalizeAiConfig(input: unknown, fallbackInstructions: string): AiConfigFollowup {
   const source = typeof input === "object" && input !== null ? (input as Record<string, unknown>) : {};
@@ -83,7 +44,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const auth = await getAuthContext();
+    const auth = await getAuthenticatedContext();
 
     if (!auth.user) {
       return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
@@ -131,7 +92,7 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params;
-    const auth = await getAuthContext();
+    const auth = await getAuthenticatedContext();
 
     if (!auth.user) {
       return NextResponse.json({ error: "Não autenticado" }, { status: 401 });

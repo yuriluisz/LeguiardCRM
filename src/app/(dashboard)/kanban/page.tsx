@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useTenant } from "@/components/providers/tenant-provider";
 import type { Lead, StatusKanban } from "@/types/database";
@@ -27,6 +27,8 @@ import {
 import { KanbanColumn } from "@/components/kanban/kanban-column";
 import { KanbanCard } from "@/components/kanban/kanban-card";
 import { toast } from "sonner";
+import { createClient } from "@/lib/supabase/client";
+import { createLeaderTabCoordinator } from "@/lib/realtime/leader-tab";
 
 export default function KanbanPage() {
   const router = useRouter();
@@ -40,6 +42,9 @@ export default function KanbanPage() {
     newStatus: StatusKanban;
   } | null>(null);
   const [saving, setSaving] = useState(false);
+  const realtimeHealthyRef = useRef(false);
+  const leadsFetchInFlightRef = useRef(false);
+  const lastSilentSyncAtRef = useRef(0);
   // removed: lastLoginAt feature
 
   const sensors = useSensors(
@@ -50,28 +55,138 @@ export default function KanbanPage() {
     })
   );
 
-  const fetchLeads = useCallback(async () => {
+  const fetchLeads = useCallback(async (options?: { showLoading?: boolean }) => {
     if (!selectedTenant) return;
-    setLoading(true);
+    const showLoading = options?.showLoading ?? false;
+    const now = Date.now();
+
+    if (!showLoading) {
+      if (leadsFetchInFlightRef.current) {
+        return;
+      }
+
+      if (now - lastSilentSyncAtRef.current < 60000) {
+        return;
+      }
+    }
+
+    leadsFetchInFlightRef.current = true;
+    if (showLoading) {
+      setLoading(true);
+    }
 
     try {
       const res = await fetch(
-        `/api/leads?tenant_id=${selectedTenant.id}&limit=500`
+        `/api/leads?tenant_id=${selectedTenant.id}&limit=300&lite=true`
       );
       if (res.ok) {
         const data = await res.json();
         setLeads(data.leads);
+        if (!showLoading) {
+          lastSilentSyncAtRef.current = Date.now();
+        }
       }
     } catch (error) {
       console.error("Erro ao carregar leads:", error);
     } finally {
-      setLoading(false);
+      leadsFetchInFlightRef.current = false;
+      if (showLoading) {
+        setLoading(false);
+      }
     }
   }, [selectedTenant]);
 
   useEffect(() => {
-    fetchLeads();
+    void fetchLeads({ showLoading: true });
   }, [fetchLeads]);
+
+  useEffect(() => {
+    if (!selectedTenant) return;
+
+    const supabase = createClient();
+    const channelTopic = `kanban-leads-${selectedTenant.id}-${Math.random().toString(36).slice(2)}`;
+    const coordinator = createLeaderTabCoordinator(`kanban:${selectedTenant.id}`);
+    const syncTimer = window.setInterval(() => {
+      if (!document.hidden && !realtimeHealthyRef.current && coordinator.shouldRun()) {
+        void fetchLeads({ showLoading: false });
+      }
+    }, 60000);
+
+    const channel = supabase
+      .channel(channelTopic)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "leads",
+        },
+        (payload) => {
+          const payloadTenantId =
+            (payload.new as { tenant_id?: string } | null)?.tenant_id ??
+            (payload.old as { tenant_id?: string } | null)?.tenant_id;
+
+          if (!payloadTenantId) {
+            return;
+          }
+
+          if (String(payloadTenantId) !== selectedTenant.id) {
+            return;
+          }
+
+          if (payload.eventType === "DELETE") {
+            const oldLead = payload.old as { id?: string };
+            if (!oldLead.id) return;
+            setLeads((prev) => prev.filter((lead) => lead.id !== oldLead.id));
+            return;
+          }
+
+          const incoming = payload.new as Lead;
+          if (!incoming?.id) return;
+
+          const normalizedLead: Lead = {
+            ...incoming,
+            status_kanban: incoming.status_kanban
+              ? String(incoming.status_kanban).toLowerCase()
+              : incoming.status_kanban,
+          };
+
+          setLeads((prev) => {
+            const index = prev.findIndex((lead) => lead.id === normalizedLead.id);
+            if (index === -1) {
+              return [normalizedLead, ...prev];
+            }
+
+            const next = [...prev];
+            next[index] = { ...next[index], ...normalizedLead };
+            return next;
+          });
+        }
+      )
+      .subscribe((status, error) => {
+        if (status === "SUBSCRIBED") {
+          realtimeHealthyRef.current = true;
+          return;
+        }
+
+        if (status === "CLOSED") {
+          realtimeHealthyRef.current = false;
+          return;
+        }
+
+        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+          realtimeHealthyRef.current = false;
+          console.warn("Realtime kanban instavel:", status, error?.message || error || "sem detalhe");
+        }
+      });
+
+    return () => {
+      realtimeHealthyRef.current = false;
+      coordinator.release();
+      window.clearInterval(syncTimer);
+      void supabase.removeChannel(channel);
+    };
+  }, [fetchLeads, selectedTenant]);
 
   function handleDragStart(event: DragStartEvent) {
     setActiveId(event.active.id as string);

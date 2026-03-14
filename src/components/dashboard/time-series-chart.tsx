@@ -45,9 +45,12 @@ export function TimeSeriesChart({ title, data, valueLabel = "Contagem", color = 
         </div>
       </CardHeader>
       <CardContent>
-        <div className="h-64 flex items-center justify-center px-2 overflow-hidden">
+        <div
+          className="dashboard-chart h-64 flex items-center justify-center px-2 overflow-hidden"
+          onMouseDown={(e) => e.preventDefault()}
+        >
           <ResponsiveContainer width="110%" height="100%" style={{ marginLeft: "-12%" }}>
-            <AreaChart data={formattedData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
+            <AreaChart accessibilityLayer={false} data={formattedData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
               <defs>
                 <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor={color} stopOpacity={0.28} />
