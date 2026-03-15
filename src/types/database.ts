@@ -133,6 +133,11 @@ export interface DashboardMetrics {
   newLeadsLast7Days: number;
   newLeadsToday: number;
   interactionsToday: number;
+  leadsStagnated: number;
+  stagnationThresholdDays: number;
+  funnelConversionRate: number;
+  kanbanFunnel: { key: string; label: string; count: number; color?: string; order: number }[];
+  followupDistribution: { stage: string; count: number; color?: string; order: number }[];
   leadsPerDay: { date: string; count: number }[];
   conversationsPerDay: { date: string; count: number }[];
   messagesPerDay: { date: string; count: number }[];

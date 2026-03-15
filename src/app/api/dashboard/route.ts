@@ -1,5 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ensureTenantAccess, getAuthenticatedContext } from "@/lib/auth/tenant-access";
+import {
+  DEFAULT_FOLLOW_CONFIG,
+  DEFAULT_KANBAN_COLUMNS,
+  type FollowConfig,
+  type FollowKanbanColumnConfig,
+  type KanbanColumnConfig,
+} from "@/types/database";
+
+function normalizeStage(value: string | null | undefined): string {
+  if (!value) return "";
+  return String(value)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -56,6 +72,23 @@ export async function GET(request: NextRequest) {
         .lt("created_at", tomorrowStart.toISOString()),
     ]);
 
+    const { data: tenantConfigData } = await supabase
+      .from("tenants")
+      .select("kanban_config, follow_config")
+      .eq("id", tenantId)
+      .single();
+
+    const kanbanColumns: KanbanColumnConfig[] =
+      tenantConfigData?.kanban_config?.columns?.length
+        ? [...tenantConfigData.kanban_config.columns].sort((a: KanbanColumnConfig, b: KanbanColumnConfig) => a.order - b.order)
+        : DEFAULT_KANBAN_COLUMNS;
+
+    const followConfig = (tenantConfigData?.follow_config as FollowConfig | null) ?? DEFAULT_FOLLOW_CONFIG;
+    const followColumns: FollowKanbanColumnConfig[] =
+      followConfig?.kanban?.columns?.length
+        ? [...followConfig.kanban.columns].sort((a, b) => a.order - b.order)
+        : DEFAULT_FOLLOW_CONFIG.kanban.columns;
+
     // Fetch leads created or interacted within the last 30 days for time series
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -67,6 +100,11 @@ export async function GET(request: NextRequest) {
       .or(
         `created_at.gte.${thirtyDaysAgo.toISOString()},last_interaction.gte.${thirtyDaysAgo.toISOString()}`
       );
+
+    const { data: leadsSnapshot } = await supabase
+      .from("leads")
+      .select("status_kanban, follow_stage, last_interaction, created_at")
+      .eq("tenant_id", tenantId);
 
     // Map counts per day
     const leadsPerDayMap: Record<string, number> = {};
@@ -114,6 +152,81 @@ export async function GET(request: NextRequest) {
       if (d === todayStr) interactionsTodayCount += 1;
     }
 
+    const kanbanCountMap = new Map<string, number>();
+    const kanbanMatchMap = new Map<string, string>();
+    const finalStageKeys = new Set<string>();
+
+    for (const col of kanbanColumns) {
+      kanbanCountMap.set(col.key, 0);
+      kanbanMatchMap.set(normalizeStage(col.key), col.key);
+      kanbanMatchMap.set(normalizeStage(col.label), col.key);
+      if (col.is_final) {
+        finalStageKeys.add(col.key);
+      }
+    }
+
+    const followCountMap = new Map<string, number>();
+    const followMatchMap = new Map<string, string>();
+    for (const col of followColumns) {
+      followCountMap.set(col.label, 0);
+      followMatchMap.set(normalizeStage(col.label), col.label);
+      followMatchMap.set(normalizeStage(col.key), col.label);
+    }
+
+    const stagnationThresholdDays = 3;
+    const stagnantCutoff = new Date();
+    stagnantCutoff.setDate(stagnantCutoff.getDate() - stagnationThresholdDays);
+    let leadsStagnated = 0;
+
+    if (leadsSnapshot) {
+      for (const lead of leadsSnapshot) {
+        const mappedKanbanKey = kanbanMatchMap.get(normalizeStage(lead.status_kanban));
+        if (mappedKanbanKey) {
+          kanbanCountMap.set(mappedKanbanKey, (kanbanCountMap.get(mappedKanbanKey) || 0) + 1);
+
+          if (!finalStageKeys.has(mappedKanbanKey)) {
+            const latestActivityIso = lead.last_interaction || lead.created_at;
+            if (latestActivityIso) {
+              const latestActivityDate = new Date(latestActivityIso);
+              if (latestActivityDate < stagnantCutoff) {
+                leadsStagnated += 1;
+              }
+            }
+          }
+        }
+
+        const mappedFollowLabel = followMatchMap.get(normalizeStage(lead.follow_stage));
+        if (mappedFollowLabel) {
+          followCountMap.set(mappedFollowLabel, (followCountMap.get(mappedFollowLabel) || 0) + 1);
+        }
+      }
+    }
+
+    const kanbanFunnel = kanbanColumns.map((col) => ({
+      key: col.key,
+      label: col.label,
+      count: kanbanCountMap.get(col.key) || 0,
+      color: col.color,
+      order: col.order,
+    }));
+
+    const followupDistribution = followColumns.map((col) => ({
+      stage: col.label,
+      count: followCountMap.get(col.label) || 0,
+      color: col.color,
+      order: col.order,
+    }));
+
+    const firstKanbanColumn = kanbanColumns[0];
+    const finalKanbanColumn =
+      kanbanColumns.find((col) => col.is_final) ||
+      kanbanColumns[kanbanColumns.length - 1];
+    const firstStageCount = firstKanbanColumn ? (kanbanCountMap.get(firstKanbanColumn.key) || 0) : 0;
+    const finalStageCount = finalKanbanColumn ? (kanbanCountMap.get(finalKanbanColumn.key) || 0) : 0;
+    const funnelConversionRate = firstStageCount > 0
+      ? Number(((finalStageCount / firstStageCount) * 100).toFixed(2))
+      : 0;
+
     // Formatar os últimos 30 dias para as séries temporais: leads por dia, conversas por dia, mensagens por dia
     const leadsPerDay: { date: string; count: number }[] = [];
     const conversationsPerDay: { date: string; count: number }[] = [];
@@ -144,6 +257,11 @@ export async function GET(request: NextRequest) {
       newLeadsLast7Days: newLeadsLast7Days || 0,
       newLeadsToday: newLeadsToday || 0,
       interactionsToday: interactionsTodayCount || 0,
+      leadsStagnated,
+      stagnationThresholdDays,
+      funnelConversionRate,
+      kanbanFunnel,
+      followupDistribution,
       leadsPerDay,
       conversationsPerDay,
       messagesPerDay,

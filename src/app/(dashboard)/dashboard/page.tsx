@@ -4,8 +4,9 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useTenant } from "@/components/providers/tenant-provider";
 import type { DashboardMetrics } from "@/types/database";
 import { MetricsCards } from "@/components/dashboard/metrics-cards";
-import { LeadsOverTimeChart } from "@/components/dashboard/leads-over-time-chart";
 import { TimeSeriesChart } from "@/components/dashboard/time-series-chart";
+import { KanbanFunnelChart } from "@/components/dashboard/kanban-funnel-chart";
+import { FollowupDistributionChart } from "@/components/dashboard/followup-distribution-chart";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { createClient } from "@/lib/supabase/client";
@@ -173,6 +174,11 @@ export default function DashboardPage() {
           description="Total de mensagens trocadas no dia"
         />
       </div>
+
+      <div className="grid gap-6 xl:grid-cols-2">
+        <KanbanFunnelChart data={metrics.kanbanFunnel} />
+        <FollowupDistributionChart data={metrics.followupDistribution} />
+      </div>
     </div>
   );
 }
@@ -185,7 +191,7 @@ function DashboardSkeleton() {
         <Skeleton className="mt-2 h-4 w-72" />
       </div>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, i) => (
+        {Array.from({ length: 5 }).map((_, i) => (
           <Skeleton key={i} className="h-32" />
         ))}
       </div>

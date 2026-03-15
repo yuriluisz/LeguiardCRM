@@ -6,7 +6,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Users, MessageSquare, UserPlus } from "lucide-react";
+import { Users, MessageSquare, UserPlus, AlertTriangle, TrendingUp } from "lucide-react";
 import type { DashboardMetrics } from "@/types/database";
 
 interface MetricsCardsProps {
@@ -36,10 +36,24 @@ export function MetricsCards({ metrics }: MetricsCardsProps) {
       description: "Leads criados no dia atual",
       color: "text-orange-500",
     },
+    {
+      title: "Leads Estagnados",
+      value: metrics.leadsStagnated,
+      icon: AlertTriangle,
+      description: `Sem interacao ha mais de ${metrics.stagnationThresholdDays} dias`,
+      color: "text-rose-500",
+    },
+    {
+      title: "Conversao do Funil",
+      value: `${metrics.funnelConversionRate.toFixed(2)}%`,
+      icon: TrendingUp,
+      description: "Ultima etapa versus primeira etapa do kanban",
+      color: "text-emerald-500",
+    },
   ];
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
       {cards.map((card) => (
         <Card key={card.title}>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
