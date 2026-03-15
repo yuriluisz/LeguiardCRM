@@ -6,8 +6,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Users, MessageSquare } from "lucide-react";
+import { Users, MessageSquare, UserPlus } from "lucide-react";
 import type { DashboardMetrics } from "@/types/database";
 
 interface MetricsCardsProps {
@@ -30,10 +29,17 @@ export function MetricsCards({ metrics }: MetricsCardsProps) {
       description: "Mensagens e interações ocorridas hoje",
       color: "text-green-500",
     },
+    {
+      title: "Leads Novos Hoje",
+      value: metrics.newLeadsToday,
+      icon: UserPlus,
+      description: "Leads criados no dia atual",
+      color: "text-orange-500",
+    },
   ];
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-2">
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {cards.map((card) => (
         <Card key={card.title}>
           <CardHeader className="flex flex-row items-center justify-between pb-2">

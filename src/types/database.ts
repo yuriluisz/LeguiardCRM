@@ -131,6 +131,7 @@ export interface CrmUserTenant {
 export interface DashboardMetrics {
   totalLeads: number;
   newLeadsLast7Days: number;
+  newLeadsToday: number;
   interactionsToday: number;
   leadsPerDay: { date: string; count: number }[];
   conversationsPerDay: { date: string; count: number }[];

@@ -28,8 +28,17 @@ export async function GET(request: NextRequest) {
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const tomorrowStart = new Date(todayStart);
+    tomorrowStart.setDate(tomorrowStart.getDate() + 1);
+
     // Total de leads + leads novos em paralelo
-    const [{ count: totalLeads }, { count: newLeadsLast7Days }] = await Promise.all([
+    const [
+      { count: totalLeads },
+      { count: newLeadsLast7Days },
+      { count: newLeadsToday },
+    ] = await Promise.all([
       supabase
         .from("leads")
         .select("*", { count: "exact", head: true })
@@ -39,6 +48,12 @@ export async function GET(request: NextRequest) {
         .select("*", { count: "exact", head: true })
         .eq("tenant_id", tenantId)
         .gte("created_at", sevenDaysAgo.toISOString()),
+      supabase
+        .from("leads")
+        .select("*", { count: "exact", head: true })
+        .eq("tenant_id", tenantId)
+        .gte("created_at", todayStart.toISOString())
+        .lt("created_at", tomorrowStart.toISOString()),
     ]);
 
     // Fetch leads created or interacted within the last 30 days for time series
@@ -127,6 +142,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       totalLeads: totalLeads || 0,
       newLeadsLast7Days: newLeadsLast7Days || 0,
+      newLeadsToday: newLeadsToday || 0,
       interactionsToday: interactionsTodayCount || 0,
       leadsPerDay,
       conversationsPerDay,
