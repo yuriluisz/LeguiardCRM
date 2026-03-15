@@ -8,6 +8,13 @@ import {
 } from "@/lib/followup/kanban-injection";
 import type { AiConfigFollowup, FollowConfig } from "@/types/database";
 
+function resolveHoraDiff(config: FollowConfig): string {
+  const firstColumn = [...(config.kanban.columns ?? [])].sort((a, b) => a.order - b.order)[0];
+  const delay = Number(firstColumn?.delay_hours ?? 0);
+  const safeDelay = Number.isFinite(delay) ? Math.max(0, Math.trunc(delay)) : 0;
+  return String(safeDelay);
+}
+
 function getAdminClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -144,6 +151,8 @@ export async function PATCH(
       ? sanitizeFollowConfig(body.follow_config as FollowConfig)
       : existingFollowConfig;
 
+    const canonicalHoraDiff = resolveHoraDiff(nextFollowConfig);
+
     if (wantsFollowConfig) {
       if ((nextFollowConfig.kanban.columns ?? []).length < 2) {
         return NextResponse.json(
@@ -188,7 +197,13 @@ export async function PATCH(
         }
       }
 
-      updates.follow_config = nextFollowConfig;
+      updates.follow_config = {
+        ...nextFollowConfig,
+        business_hours: {
+          ...nextFollowConfig.business_hours,
+          hora_diff: canonicalHoraDiff,
+        },
+      };
     }
 
     const existingAi = normalizeAiConfig(
@@ -214,7 +229,7 @@ export async function PATCH(
       } satisfies AiConfigFollowup;
     }
 
-    const { data: updatedTenant, error: updateError } = await admin
+    const { data: updatedRow, error: updateError } = await admin
       .from("tenants")
       .update(updates)
       .eq("id", id)
@@ -223,6 +238,34 @@ export async function PATCH(
 
     if (updateError) {
       throw updateError;
+    }
+
+    let updatedTenant = updatedRow;
+
+    if (wantsFollowConfig) {
+      const persistedHoraDiff = String(
+        (updatedTenant?.follow_config as FollowConfig | null)?.business_hours?.hora_diff ?? ""
+      );
+
+      if (persistedHoraDiff !== canonicalHoraDiff) {
+        const healed = sanitizeFollowConfig(
+          (updatedTenant?.follow_config ?? nextFollowConfig) as FollowConfig | null
+        );
+        healed.business_hours.hora_diff = canonicalHoraDiff;
+
+        const { data: healedTenant, error: healError } = await admin
+          .from("tenants")
+          .update({ follow_config: healed })
+          .eq("id", id)
+          .select("*")
+          .single();
+
+        if (healError) {
+          throw healError;
+        }
+
+        updatedTenant = healedTenant;
+      }
     }
 
     if (wantsFollowConfig) {
