@@ -3,7 +3,14 @@
 import { useEffect, useState, useRef, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useTenant } from "@/components/providers/tenant-provider";
-import type { Lead, Interaction, CrmConfig, StatusKanban } from "@/types/database";
+import type {
+  Lead,
+  Interaction,
+  CrmConfig,
+  StatusKanban,
+  CrmField,
+  CrmFieldType,
+} from "@/types/database";
 import { getKanbanColumns, getStatusLabel } from "@/types/database";
 import { CustomDataFields } from "@/components/leads/custom-data-fields";
 import { format } from "date-fns";
@@ -51,6 +58,12 @@ import { createClient } from "@/lib/supabase/client";
 import { createLeaderTabCoordinator } from "@/lib/realtime/leader-tab";
 import type { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
 
+const CRM_FIELD_TYPES: readonly CrmFieldType[] = ["text", "number", "select", "date"];
+
+function isCrmFieldType(value: string): value is CrmFieldType {
+  return CRM_FIELD_TYPES.includes(value as CrmFieldType);
+}
+
 function normalizeCrmConfig(raw: unknown): CrmConfig | null {
   if (!raw || typeof raw !== "object") {
     return null;
@@ -69,7 +82,8 @@ function normalizeCrmConfig(raw: unknown): CrmConfig | null {
       const row = item as Record<string, unknown>;
       const key = typeof row.key === "string" ? row.key : "";
       const label = typeof row.label === "string" ? row.label : key;
-      const type = typeof row.type === "string" ? row.type : "text";
+      const rawType = typeof row.type === "string" ? row.type : "text";
+      const type: CrmFieldType = isCrmFieldType(rawType) ? rawType : "text";
 
       if (!key) {
         return null;
@@ -77,7 +91,7 @@ function normalizeCrmConfig(raw: unknown): CrmConfig | null {
 
       return { key, label, type };
     })
-    .filter((item): item is { key: string; label: string; type: string } => Boolean(item));
+    .filter((item): item is CrmField => Boolean(item));
 
   return { fields };
 }
