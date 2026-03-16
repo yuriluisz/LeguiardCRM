@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useTenant } from "@/components/providers/tenant-provider";
 import type {
   FollowConfig,
@@ -11,6 +12,7 @@ import type {
 import { DEFAULT_FOLLOW_CONFIG } from "@/types/database";
 import { sanitizeFollowConfig } from "@/lib/followup/kanban-injection";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -65,6 +67,7 @@ import {
   Clock3,
   MoreVertical,
   Palette,
+  Bot,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -124,6 +127,10 @@ type StageDraft = {
   is_final: boolean;
   color: string;
 };
+
+function normalizeStageKey(value: string | null | undefined): string {
+  return String(value ?? "").trim().toLowerCase();
+}
 
 function slugify(value: string): string {
   return value
@@ -189,12 +196,16 @@ const dropAnimationConfig: DropAnimation = {
 function SortableStageColumn({
   column,
   count,
+  leads = [],
+  onLeadClick,
   onEdit,
   onDelete,
   dragOverlay = false, // Add dragOverlay prop
 }: {
   column: UiFollowColumn;
   count: number;
+  leads?: Lead[];
+  onLeadClick?: (leadId: string) => void;
   onEdit?: () => void;
   onDelete?: () => void;
   dragOverlay?: boolean;
@@ -363,12 +374,47 @@ function SortableStageColumn({
             Etapa Final do Fluxo
           </div>
         )}
+
+        {!dragOverlay && (
+          <div className="space-y-2">
+            {leads.length === 0 ? (
+              <p className="text-xs text-muted-foreground">
+                Nenhum lead nesta etapa.
+              </p>
+            ) : (
+              leads.map((lead) => (
+                <Card
+                  key={lead.id}
+                  className="cursor-pointer border-border/50 bg-card transition-all duration-150 hover:shadow-md hover:border-border"
+                  onClick={() => onLeadClick?.(lead.id)}
+                >
+                  <CardContent className="space-y-1.5 p-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="truncate text-sm font-semibold leading-tight">
+                        {lead.name || "Sem nome"}
+                      </p>
+                      {lead.ai_active && (
+                        <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-green-500/10">
+                          <Bot className="h-3 w-3 text-green-500" />
+                        </div>
+                      )}
+                    </div>
+                    <p className="font-mono text-[11px] text-muted-foreground">
+                      {lead.phone}
+                    </p>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
 export default function FollowupSettingsPage() {
+  const router = useRouter();
   const { selectedTenant, loading: tenantLoading } = useTenant();
 
   const [loading, setLoading] = useState(true);
@@ -413,8 +459,24 @@ export default function FollowupSettingsPage() {
   const stageCountMap = useMemo(() => {
     const map = new Map<string, number>();
     for (const lead of leads) {
-      if (!lead.follow_stage) continue;
-      map.set(lead.follow_stage, (map.get(lead.follow_stage) ?? 0) + 1);
+      const stageKey = normalizeStageKey(lead.follow_stage);
+      if (!stageKey) continue;
+      map.set(stageKey, (map.get(stageKey) ?? 0) + 1);
+    }
+    return map;
+  }, [leads]);
+
+  const stageLeadsMap = useMemo(() => {
+    const map = new Map<string, Lead[]>();
+    for (const lead of leads) {
+      const stageKey = normalizeStageKey(lead.follow_stage);
+      if (!stageKey) continue;
+      const bucket = map.get(stageKey);
+      if (bucket) {
+        bucket.push(lead);
+      } else {
+        map.set(stageKey, [lead]);
+      }
     }
     return map;
   }, [leads]);
@@ -742,7 +804,9 @@ export default function FollowupSettingsPage() {
                 <SortableStageColumn
                   key={column._uiId}
                   column={column}
-                  count={stageCountMap.get(column.label) ?? 0}
+                  count={stageCountMap.get(normalizeStageKey(column.label)) ?? 0}
+                  leads={stageLeadsMap.get(normalizeStageKey(column.label)) ?? []}
+                  onLeadClick={(leadId) => router.push(`/conversations?lead=${leadId}`)}
                   onEdit={() => openEditStage(column)}
                   onDelete={() => removeStage(column)}
                 />
@@ -762,7 +826,7 @@ export default function FollowupSettingsPage() {
             {activeColumn ? (
                 <SortableStageColumn
                     column={activeColumn}
-                    count={stageCountMap.get(activeColumn.label) ?? 0}
+                  count={stageCountMap.get(normalizeStageKey(activeColumn.label)) ?? 0}
                     dragOverlay
                 />
             ) : null}
