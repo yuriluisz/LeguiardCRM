@@ -12,6 +12,7 @@ import {
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useTenant } from "@/components/providers/tenant-provider";
 
 interface AppSidebarProps {
   open: boolean;
@@ -43,6 +44,11 @@ const navItems = [
 
 export function AppSidebar({ open, onClose }: AppSidebarProps) {
   const pathname = usePathname();
+  const { selectedTenant } = useTenant();
+  const isBronzeTenant = String(selectedTenant?.plan_level || "").toLowerCase() === "bronze";
+  const availableNavItems = isBronzeTenant
+    ? navItems.filter((item) => item.href !== "/followup")
+    : navItems;
 
   return (
     <>
@@ -84,7 +90,7 @@ export function AppSidebar({ open, onClose }: AppSidebarProps) {
 
         {/* Navegação */}
         <nav className="flex-1 space-y-1 p-3">
-          {navItems.map((item) => {
+          {availableNavItems.map((item) => {
             const isActive =
               pathname === item.href ||
               (item.href !== "/dashboard" && pathname.startsWith(item.href));

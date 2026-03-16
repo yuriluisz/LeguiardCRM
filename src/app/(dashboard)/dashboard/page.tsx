@@ -13,6 +13,7 @@ import { createClient } from "@/lib/supabase/client";
 
 export default function DashboardPage() {
   const { selectedTenant, loading: tenantLoading } = useTenant();
+  const isBronzeTenant = String(selectedTenant?.plan_level || "").toLowerCase() === "bronze";
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [rangeDays, setRangeDays] = useState<number>(7);
@@ -117,21 +118,22 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Dashboard</h1>
-        <p className="text-muted-foreground">
+    <div className="space-y-5 sm:space-y-6">
+      <div className="space-y-1">
+        <h1 className="text-xl font-bold sm:text-2xl">Dashboard</h1>
+        <p className="text-sm text-muted-foreground sm:text-base">
           Visão geral dos leads de {selectedTenant.name}
         </p>
       </div>
 
       <MetricsCards metrics={metrics} />
 
-      <div className="flex items-center justify-end gap-2">
+      <div className="flex flex-wrap items-center justify-start gap-2 sm:justify-end">
         <Button
           size="sm"
           variant={rangeDays === 7 ? "default" : "outline"}
           onClick={() => setRangeDays(7)}
+          className="flex-1 sm:flex-none"
         >
           7 dias
         </Button>
@@ -139,6 +141,7 @@ export default function DashboardPage() {
           size="sm"
           variant={rangeDays === 14 ? "default" : "outline"}
           onClick={() => setRangeDays(14)}
+          className="flex-1 sm:flex-none"
         >
           14 dias
         </Button>
@@ -146,6 +149,7 @@ export default function DashboardPage() {
           size="sm"
           variant={rangeDays === 30 ? "default" : "outline"}
           onClick={() => setRangeDays(30)}
+          className="flex-1 sm:flex-none"
         >
           30 dias
         </Button>
@@ -175,9 +179,11 @@ export default function DashboardPage() {
         />
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-2">
+      <div className={`grid gap-6 ${isBronzeTenant ? "xl:grid-cols-1" : "xl:grid-cols-2"}`}>
         <KanbanFunnelChart data={metrics.kanbanFunnel} />
-        <FollowupDistributionChart data={metrics.followupDistribution} />
+        {!isBronzeTenant && (
+          <FollowupDistributionChart data={metrics.followupDistribution} />
+        )}
       </div>
     </div>
   );

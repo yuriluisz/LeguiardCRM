@@ -53,7 +53,7 @@ export function MetricsCards({ metrics }: MetricsCardsProps) {
   ];
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+    <div className="grid gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-5">
       {cards.map((card) => (
         <Card key={card.title}>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -63,7 +63,7 @@ export function MetricsCards({ metrics }: MetricsCardsProps) {
             <card.icon className={`h-5 w-5 ${card.color}`} />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{card.value}</div>
+            <div className="text-2xl font-bold sm:text-3xl">{card.value}</div>
             <p className="mt-1 text-xs text-muted-foreground">
               {card.description}
             </p>

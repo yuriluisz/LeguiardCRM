@@ -47,7 +47,7 @@ export function AppHeader({ onMenuToggle, userName, userEmail }: AppHeaderProps)
     : userEmail?.slice(0, 2).toUpperCase() || "U";
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background px-4 lg:px-6">
+    <header className="sticky top-0 z-30 flex h-16 items-center gap-2 border-b bg-background px-3 sm:gap-3 sm:px-4 lg:gap-4 lg:px-6">
       <Button
         variant="ghost"
         size="icon"
@@ -58,12 +58,12 @@ export function AppHeader({ onMenuToggle, userName, userEmail }: AppHeaderProps)
       </Button>
 
       {/* Tenant Selector */}
-      <div className="flex-1">
+      <div className="min-w-0 flex-1">
         <TenantSelector />
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-2">
+      <div className="flex shrink-0 items-center gap-1 sm:gap-2">
         {mounted && (
           <Button
             variant="ghost"
@@ -84,14 +84,14 @@ export function AppHeader({ onMenuToggle, userName, userEmail }: AppHeaderProps)
               <User className="h-5 w-5" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuContent align="end" className="w-56 max-w-[calc(100vw-1rem)]">
             <div className="flex items-center gap-2 p-2">
               <div className="flex flex-col space-y-0.5">
                 {userName && (
-                  <p className="text-sm font-medium">{userName}</p>
+                  <p className="max-w-44 truncate text-sm font-medium">{userName}</p>
                 )}
                 {userEmail && (
-                  <p className="text-xs text-muted-foreground">{userEmail}</p>
+                  <p className="max-w-44 truncate text-xs text-muted-foreground">{userEmail}</p>
                 )}
               </div>
             </div>

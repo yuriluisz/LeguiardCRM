@@ -38,7 +38,7 @@ export function FollowupDistributionChart({ data }: FollowupDistributionChartPro
         </p>
       </CardHeader>
       <CardContent>
-        <div className="dashboard-chart h-72" onMouseDown={(e) => e.preventDefault()}>
+        <div className="dashboard-chart h-64 sm:h-72" onMouseDown={(e) => e.preventDefault()}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart accessibilityLayer={false} data={chartData} layout="vertical" margin={{ left: 24 }}>
               <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
@@ -48,7 +48,7 @@ export function FollowupDistributionChart({ data }: FollowupDistributionChartPro
                 dataKey="stage"
                 className="text-xs"
                 tick={{ fontSize: 11 }}
-                width={110}
+                width={88}
               />
               <Tooltip
                 contentStyle={{

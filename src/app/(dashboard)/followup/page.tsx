@@ -223,7 +223,7 @@ function SortableStageColumn({
       return (
         <div
             className={cn(
-            "flex w-72 shrink-0 flex-col rounded-xl border bg-muted/20 shadow-2xl ring-2 ring-primary rotate-2 cursor-grabbing z-50",
+          "z-50 flex w-[85vw] max-w-72 shrink-0 rotate-2 cursor-grabbing flex-col rounded-xl border bg-muted/20 shadow-2xl ring-2 ring-primary sm:w-72",
             )}
         >
         {/* Header "Janela" com Drag Handle */}
@@ -292,7 +292,7 @@ function SortableStageColumn({
       ref={setNodeRef}
       style={style}
       className={cn(
-        "flex w-72 shrink-0 flex-col rounded-xl border bg-muted/20 transition-all duration-200",
+        "flex w-[85vw] max-w-72 shrink-0 flex-col rounded-xl border bg-muted/20 transition-all duration-200 sm:w-72",
         isDragging && "opacity-30" // Lower opacity for the placeholder
       )}
     >
@@ -416,6 +416,7 @@ function SortableStageColumn({
 export default function FollowupSettingsPage() {
   const router = useRouter();
   const { selectedTenant, loading: tenantLoading } = useTenant();
+  const isBronzeTenant = String(selectedTenant?.plan_level || "").toLowerCase() === "bronze";
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -441,6 +442,13 @@ export default function FollowupSettingsPage() {
 
   const [leads, setLeads] = useState<Lead[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!tenantLoading && isBronzeTenant) {
+      toast.error("Follow-up indisponível no plano Bronze.");
+      router.replace("/dashboard");
+    }
+  }, [isBronzeTenant, router, tenantLoading]);
 
   const activeColumn = useMemo(() => {
     if (!activeId) return null;
@@ -736,7 +744,7 @@ export default function FollowupSettingsPage() {
 
   if (tenantLoading || loading) {
     return (
-      <div className="flex h-[calc(100vh-6.5rem)] items-center justify-center">
+      <div className="flex h-[calc(100dvh-6.5rem)] items-center justify-center">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
     );
@@ -750,18 +758,22 @@ export default function FollowupSettingsPage() {
     );
   }
 
+  if (isBronzeTenant) {
+    return null;
+  }
+
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-start justify-between gap-3 sm:items-center">
         <div>
-          <h1 className="text-2xl font-bold">Follow-up</h1>
-          <p className="text-sm text-muted-foreground">
+          <h1 className="text-xl font-bold sm:text-2xl">Follow-up</h1>
+          <p className="text-xs text-muted-foreground sm:text-sm">
             Pipeline de follow-up de {selectedTenant.name}
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-2 rounded-md border px-3 py-2">
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
+          <div className="flex w-full items-center justify-between gap-2 rounded-md border px-3 py-2 sm:w-auto sm:justify-start">
             <Label htmlFor="follow-status" className="text-sm">
               Follow-up ativo
             </Label>
@@ -772,12 +784,12 @@ export default function FollowupSettingsPage() {
             />
           </div>
 
-          <Button variant="outline" onClick={() => setSheetOpen(true)}>
+          <Button variant="outline" onClick={() => setSheetOpen(true)} className="flex-1 sm:flex-none">
             <Settings2 className="mr-2 h-4 w-4" />
             Configuração geral
           </Button>
 
-          <Button onClick={saveConfig} disabled={saving}>
+          <Button onClick={saveConfig} disabled={saving} className="flex-1 sm:flex-none">
             {saving ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
@@ -815,7 +827,7 @@ export default function FollowupSettingsPage() {
               <button
                 type="button"
                 onClick={openCreateStage}
-                className="flex h-[236px] w-72 shrink-0 items-center justify-center rounded-xl border border-dashed bg-muted/20 text-sm font-medium text-muted-foreground transition-colors hover:border-primary/60 hover:text-foreground"
+                className="flex h-[236px] w-[85vw] max-w-72 shrink-0 items-center justify-center rounded-xl border border-dashed bg-muted/20 text-sm font-medium text-muted-foreground transition-colors hover:border-primary/60 hover:text-foreground sm:w-72"
               >
                 <Plus className="mr-2 h-4 w-4" />
                 Nova etapa
@@ -876,7 +888,7 @@ export default function FollowupSettingsPage() {
                     <Palette className="ml-auto h-4 w-4 opacity-50" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-64 p-3" align="start">
+                <PopoverContent className="w-[min(16rem,calc(100vw-2rem))] p-3" align="start">
                   <div className="grid grid-cols-6 gap-2">
                     {PRESET_COLORS.map((color) => (
                       <button

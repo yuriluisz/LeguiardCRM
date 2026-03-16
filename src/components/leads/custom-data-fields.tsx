@@ -18,11 +18,32 @@ export function CustomDataFields({ fields, data }: CustomDataFieldsProps) {
     );
   }
 
+  const fieldEntries = fields.length
+    ? fields.map((field) => ({
+        key: field.key,
+        label: field.label,
+        type: field.type,
+        value: data[field.key],
+      }))
+    : Object.entries(data).map(([key, value]) => ({
+        key,
+        label: key,
+        type: typeof value === "number" ? "number" : "text",
+        value,
+      }));
+
+  if (fieldEntries.length === 0) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        Nenhum dado adicional registrado.
+      </p>
+    );
+  }
+
   return (
     <div className="space-y-3">
-      {fields.map((field) => {
-        const value = data[field.key];
-        const displayValue = formatFieldValue(value, field.type);
+      {fieldEntries.map((field) => {
+        const displayValue = formatFieldValue(field.value, field.type);
 
         return (
           <div key={field.key}>

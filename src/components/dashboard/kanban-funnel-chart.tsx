@@ -31,16 +31,38 @@ export function KanbanFunnelChart({ data }: KanbanFunnelChartProps) {
       fill: item.color || "#3b82f6",
     }));
 
+  const firstStageCount = chartData[0]?.value || 0;
+  const lastStageCount = chartData[chartData.length - 1]?.value || 0;
+  const conversionRate = firstStageCount > 0 ? (lastStageCount / firstStageCount) * 100 : 0;
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Funil do Kanban Principal</CardTitle>
-        <p className="text-xs text-muted-foreground">
-          Distribuicao dos leads por etapa do pipeline principal
-        </p>
+        <div>
+          <CardTitle className="text-base">Funil do Kanban Principal</CardTitle>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Distribuicao dos leads por etapa do pipeline principal
+          </p>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <div className="rounded-md border bg-muted/30 px-3 py-2">
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                Total no pipeline
+              </p>
+              <p className="text-lg font-semibold leading-none">{totalLeads}</p>
+            </div>
+            <div className="rounded-md border bg-muted/30 px-3 py-2">
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                Conversao
+              </p>
+              <p className="text-lg font-semibold leading-none">
+                {conversionRate.toFixed(1)}%
+              </p>
+            </div>
+          </div>
+        </div>
       </CardHeader>
       <CardContent>
-        <div className="dashboard-chart h-80" onMouseDown={(e) => e.preventDefault()}>
+        <div className="dashboard-chart h-64 sm:h-72 lg:h-80" onMouseDown={(e) => e.preventDefault()}>
           <ResponsiveContainer width="100%" height="100%">
             <FunnelChart margin={{ top: 12, right: 12, left: 12, bottom: 12 }}>
               <Tooltip
@@ -84,7 +106,6 @@ export function KanbanFunnelChart({ data }: KanbanFunnelChartProps) {
                       return null;
                     }
 
-                    // Evita poluicao visual em blocos muito pequenos
                     if (width < 90 || height < 26) {
                       return null;
                     }

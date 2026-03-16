@@ -260,9 +260,9 @@ export default function KanbanPage() {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-bold">Kanban</h1>
-        <p className="text-muted-foreground">
+      <div className="space-y-1">
+        <h1 className="text-xl font-bold sm:text-2xl">Kanban</h1>
+        <p className="text-sm text-muted-foreground sm:text-base">
           Visualize e gerencie o pipeline de {selectedTenant.name}
         </p>
       </div>
@@ -302,7 +302,7 @@ export default function KanbanPage() {
 
           <DragOverlay>
             {activeLead ? (
-              <Card className="w-72 rotate-2 opacity-95 shadow-2xl border-primary/30 ring-2 ring-primary/20">
+              <Card className="w-[85vw] max-w-72 rotate-2 border-primary/30 opacity-95 ring-2 ring-primary/20 shadow-2xl sm:w-72">
                 <CardContent className="p-3">
                   <p className="font-semibold text-sm">
                     {activeLead.name || "Sem nome"}
@@ -347,7 +347,7 @@ function KanbanSkeleton() {
       </div>
       <div className="flex gap-3">
         {Array.from({ length: 7 }).map((_, i) => (
-          <div key={i} className="flex w-72 shrink-0 flex-col gap-2.5 rounded-xl border bg-muted/20 p-2 pt-4">
+          <div key={i} className="flex w-[85vw] max-w-72 shrink-0 flex-col gap-2.5 rounded-xl border bg-muted/20 p-2 pt-4 sm:w-72">
             <div className="flex items-center justify-between px-1">
               <Skeleton className="h-4 w-20" />
               <Skeleton className="h-5 w-5 rounded-full" />

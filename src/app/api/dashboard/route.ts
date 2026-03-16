@@ -74,9 +74,11 @@ export async function GET(request: NextRequest) {
 
     const { data: tenantConfigData } = await supabase
       .from("tenants")
-      .select("kanban_config, follow_config")
+      .select("kanban_config, follow_config, plan_level")
       .eq("id", tenantId)
       .single();
+
+    const isBronzeTenant = String(tenantConfigData?.plan_level || "").toLowerCase() === "bronze";
 
     const kanbanColumns: KanbanColumnConfig[] =
       tenantConfigData?.kanban_config?.columns?.length
@@ -85,9 +87,9 @@ export async function GET(request: NextRequest) {
 
     const followConfig = (tenantConfigData?.follow_config as FollowConfig | null) ?? DEFAULT_FOLLOW_CONFIG;
     const followColumns: FollowKanbanColumnConfig[] =
-      followConfig?.kanban?.columns?.length
+      !isBronzeTenant && followConfig?.kanban?.columns?.length
         ? [...followConfig.kanban.columns].sort((a, b) => a.order - b.order)
-        : DEFAULT_FOLLOW_CONFIG.kanban.columns;
+        : [];
 
     // Fetch leads created or interacted within the last 30 days for time series
     const thirtyDaysAgo = new Date();

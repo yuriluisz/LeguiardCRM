@@ -51,6 +51,37 @@ import { createClient } from "@/lib/supabase/client";
 import { createLeaderTabCoordinator } from "@/lib/realtime/leader-tab";
 import type { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
 
+function normalizeCrmConfig(raw: unknown): CrmConfig | null {
+  if (!raw || typeof raw !== "object") {
+    return null;
+  }
+
+  const source = raw as Record<string, unknown>;
+  const candidateFields = source.fields ?? source.custom_fields ?? source.customDataFields;
+  const fieldList = Array.isArray(candidateFields) ? candidateFields : [];
+
+  const fields = fieldList
+    .map((item) => {
+      if (!item || typeof item !== "object") {
+        return null;
+      }
+
+      const row = item as Record<string, unknown>;
+      const key = typeof row.key === "string" ? row.key : "";
+      const label = typeof row.label === "string" ? row.label : key;
+      const type = typeof row.type === "string" ? row.type : "text";
+
+      if (!key) {
+        return null;
+      }
+
+      return { key, label, type };
+    })
+    .filter((item): item is { key: string; label: string; type: string } => Boolean(item));
+
+  return { fields };
+}
+
 function ConversationsContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -78,6 +109,12 @@ function ConversationsContent() {
   const lastLeadsSilentSyncAtRef = useRef(0);
   const interactionsFetchInFlightRef = useRef(false);
   const lastInteractionsSilentSyncAtRef = useRef(0);
+
+  useEffect(() => {
+    if (window.matchMedia("(max-width: 1023px)").matches) {
+      setShowInfoPanel(false);
+    }
+  }, []);
 
   const normalizeLead = useCallback((lead: Lead): Lead => {
     return {
@@ -162,8 +199,26 @@ function ConversationsContent() {
         if (!res.ok) throw new Error("Falha ao buscar interações");
 
         const data = await res.json();
+        const fullLead = data.lead as Lead | undefined;
         setInteractions((data.interactions as Interaction[]) ?? []);
-        setCrmConfig(data.crmConfig ?? null);
+        setCrmConfig(normalizeCrmConfig(data.crmConfig));
+
+        if (fullLead?.id) {
+          const normalizedLead: Lead = {
+            ...fullLead,
+            status_kanban: fullLead.status_kanban
+              ? String(fullLead.status_kanban).toLowerCase()
+              : fullLead.status_kanban,
+          };
+
+          setLeads((prev) =>
+            prev.map((lead) => (lead.id === normalizedLead.id ? { ...lead, ...normalizedLead } : lead))
+          );
+          setSelectedLead((prev) =>
+            prev && prev.id === normalizedLead.id ? { ...prev, ...normalizedLead } : prev
+          );
+        }
+
         if (!showLoading) {
           lastInteractionsSilentSyncAtRef.current = Date.now();
         }
@@ -601,7 +656,7 @@ function ConversationsContent() {
   // Loading state while tenant is loading
   if (tenantLoading) {
     return (
-      <div className="flex h-[calc(100vh-5.5rem)] items-center justify-center">
+      <div className="flex h-[calc(100dvh-5.5rem)] items-center justify-center">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
     );
@@ -609,14 +664,14 @@ function ConversationsContent() {
 
   if (!selectedTenant) {
     return (
-      <div className="flex h-[calc(100vh-5.5rem)] items-center justify-center text-muted-foreground">
+      <div className="flex h-[calc(100dvh-5.5rem)] items-center justify-center text-muted-foreground">
         Selecione um tenant para ver as conversas.
       </div>
     );
   }
 
   return (
-    <div className="flex h-[calc(100vh-5.5rem)] md:h-[calc(100vh-6.5rem)] gap-0 overflow-hidden rounded-lg border bg-background">
+    <div className="flex h-[calc(100dvh-5.5rem)] md:h-[calc(100dvh-6.5rem)] gap-0 overflow-hidden rounded-lg border bg-background">
       {/* ============ LEFT SIDEBAR — Lista de Leads ============ */}
       <div
         className={cn(
@@ -669,7 +724,7 @@ function ConversationsContent() {
                       <p className="text-sm font-medium truncate">
                         {lead.name || "Lead"}
                       </p>
-                      <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                      <span className="hidden whitespace-nowrap text-[10px] text-muted-foreground sm:inline">
                         {lead.last_interaction
                           ? format(
                               new Date(lead.last_interaction),
@@ -711,7 +766,7 @@ function ConversationsContent() {
         {selectedLead ? (
           <>
             {/* Chat Header */}
-            <div className="flex items-center gap-3 px-4 py-3 border-b shrink-0">
+            <div className="flex shrink-0 items-center gap-2 border-b px-3 py-3 sm:gap-3 sm:px-4">
               {/* Mobile back button */}
               <Button
                 variant="ghost"
@@ -735,11 +790,11 @@ function ConversationsContent() {
               </div>
 
               {/* Controls */}
-              <div className="flex items-center gap-3 shrink-0">
+              <div className="flex items-center gap-2 shrink-0">
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="hidden lg:flex"
+                  className="flex"
                   onClick={() => setShowInfoPanel(!showInfoPanel)}
                   title={showInfoPanel ? "Ocultar painel" : "Mostrar painel"}
                 >
@@ -753,10 +808,15 @@ function ConversationsContent() {
             </div>
 
             {/* Chat + Info Panel */}
-            <div className="flex flex-1 min-h-0">
+            <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
               {/* Messages */}
-              <ScrollArea className="flex-1 min-h-0">
-                <div className="px-4 py-4 space-y-4">
+              <ScrollArea
+                className={cn(
+                  "min-h-0",
+                  showInfoPanel ? "hidden lg:block lg:flex-1" : "flex-1"
+                )}
+              >
+                <div className="space-y-4 px-3 py-4 sm:px-4">
                   {loadingChat ? (
                     <div className="flex items-center justify-center py-20">
                       <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -790,7 +850,7 @@ function ConversationsContent() {
                         </div>
                         <div
                           className={cn(
-                            "max-w-[80%] rounded-lg px-4 py-2.5",
+                            "max-w-[88%] rounded-lg px-3 py-2.5 sm:max-w-[80%] sm:px-4",
                             msg.role === "user"
                               ? "bg-muted"
                               : "bg-primary text-primary-foreground"
@@ -823,7 +883,7 @@ function ConversationsContent() {
 
               {/* ============ RIGHT PANEL — Informações do Lead ============ */}
               {showInfoPanel && (
-                <div className="hidden lg:flex w-80 xl:w-96 shrink-0 border-l flex-col min-h-0">
+                <div className="flex min-h-0 flex-1 w-full flex-col border-t lg:w-80 lg:flex-none lg:border-t-0 lg:border-l xl:w-96">
                   <ScrollArea className="flex-1 min-h-0">
                     <div className="p-4 space-y-4">
                       {/* Dados do Lead */}
