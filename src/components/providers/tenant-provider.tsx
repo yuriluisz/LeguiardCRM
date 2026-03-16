@@ -8,6 +8,9 @@ interface TenantContextType {
   tenants: Tenant[];
   selectedTenant: Tenant | null;
   setSelectedTenantId: (id: string) => void;
+  userName: string | null;
+  userEmail: string;
+  isAdmin: boolean;
   loading: boolean;
 }
 
@@ -15,6 +18,9 @@ const TenantContext = createContext<TenantContextType>({
   tenants: [],
   selectedTenant: null,
   setSelectedTenantId: () => {},
+  userName: null,
+  userEmail: "",
+  isAdmin: false,
   loading: true,
 });
 
@@ -25,6 +31,9 @@ export function useTenant() {
 export function TenantProvider({ children }: { children: React.ReactNode }) {
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [selectedTenantId, setSelectedTenantIdState] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState<string>("");
+  const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const fetchTenants = useCallback(async () => {
@@ -33,12 +42,17 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      setUserEmail(user.email || "");
+
       // Buscar dados do crm_user
       const { data: crmUser } = await supabase
         .from("crm_users")
-        .select("is_admin")
+        .select("name, is_admin")
         .eq("id", user.id)
         .single();
+
+      setUserName(crmUser?.name || null);
+      setIsAdmin(Boolean(crmUser?.is_admin));
 
       let tenantsData: Tenant[] = [];
 
@@ -97,7 +111,15 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <TenantContext.Provider
-      value={{ tenants, selectedTenant, setSelectedTenantId, loading }}
+      value={{
+        tenants,
+        selectedTenant,
+        setSelectedTenantId,
+        userName,
+        userEmail,
+        isAdmin,
+        loading,
+      }}
     >
       {children}
     </TenantContext.Provider>

@@ -72,6 +72,30 @@ npm start
 
 O projeto é deployado em VPS com Node.js via EasyPanel.
 
+## Performance (execucao por fases)
+
+### Fase 0 - Baseline
+
+Use o checklist em:
+
+- `docs/performance/phase-0-baseline.md`
+
+Roadmap completo:
+
+- `docs/performance/roadmap.md`
+
+### Fase 1 - Indices SQL
+
+Aplicar no Supabase SQL Editor:
+
+- `scripts/db/performance-indexes.sql`
+
+Depois de aplicar os indices:
+
+1. Rode 3 vezes o Lighthouse em aba anonima sem extensoes.
+2. Compare mediana de `TTFB`, `Speed Index` e `Main-thread work`.
+3. Validar os smoke checks descritos no checklist da Fase 0.
+
 ## Backup e Restore (100% logico)
 
 Para backup fiel da estrutura + dados, use `pg_dump/pg_restore` (nao apenas SQL de introspeccao).

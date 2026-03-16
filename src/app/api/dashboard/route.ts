@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Sem acesso a este tenant" }, { status: 403 });
     }
 
-    // Total de leads
+    // Janelas de tempo usadas nas metricas
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
@@ -49,34 +49,42 @@ export async function GET(request: NextRequest) {
     const tomorrowStart = new Date(todayStart);
     tomorrowStart.setDate(tomorrowStart.getDate() + 1);
 
-    // Total de leads + leads novos em paralelo
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const lastLogin = new Date();
+    lastLogin.setDate(lastLogin.getDate() - 1);
+
+    const thirtyDaysAgoIso = thirtyDaysAgo.toISOString();
+
+    // Agrupa leituras independentes para reduzir latencia total do endpoint.
     const [
       { count: totalLeads },
-      { count: newLeadsLast7Days },
-      { count: newLeadsToday },
+      { data: tenantConfigData },
+      { data: recentLeads },
+      { data: leadsSnapshot },
     ] = await Promise.all([
       supabase
         .from("leads")
-        .select("*", { count: "exact", head: true })
+        .select("id", { count: "exact", head: true })
         .eq("tenant_id", tenantId),
       supabase
-        .from("leads")
-        .select("*", { count: "exact", head: true })
-        .eq("tenant_id", tenantId)
-        .gte("created_at", sevenDaysAgo.toISOString()),
+        .from("tenants")
+        .select("kanban_config, follow_config, plan_level")
+        .eq("id", tenantId)
+        .single(),
       supabase
         .from("leads")
-        .select("*", { count: "exact", head: true })
+        .select("id, created_at, last_interaction")
         .eq("tenant_id", tenantId)
-        .gte("created_at", todayStart.toISOString())
-        .lt("created_at", tomorrowStart.toISOString()),
+        .or(
+          `created_at.gte.${thirtyDaysAgoIso},last_interaction.gte.${thirtyDaysAgoIso}`
+        ),
+      supabase
+        .from("leads")
+        .select("status_kanban, follow_stage, last_interaction, created_at")
+        .eq("tenant_id", tenantId),
     ]);
-
-    const { data: tenantConfigData } = await supabase
-      .from("tenants")
-      .select("kanban_config, follow_config, plan_level")
-      .eq("id", tenantId)
-      .single();
 
     const isBronzeTenant = String(tenantConfigData?.plan_level || "").toLowerCase() === "bronze";
 
@@ -91,22 +99,9 @@ export async function GET(request: NextRequest) {
         ? [...followConfig.kanban.columns].sort((a, b) => a.order - b.order)
         : [];
 
-    // Fetch leads created or interacted within the last 30 days for time series
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-    const { data: recentLeads } = await supabase
-      .from("leads")
-      .select("id, created_at, last_interaction")
-      .eq("tenant_id", tenantId)
-      .or(
-        `created_at.gte.${thirtyDaysAgo.toISOString()},last_interaction.gte.${thirtyDaysAgo.toISOString()}`
-      );
-
-    const { data: leadsSnapshot } = await supabase
-      .from("leads")
-      .select("status_kanban, follow_stage, last_interaction, created_at")
-      .eq("tenant_id", tenantId);
+    let newLeadsLast7Days = 0;
+    let newLeadsToday = 0;
+    let newSinceLastLogin = 0;
 
     // Map counts per day
     const leadsPerDayMap: Record<string, number> = {};
@@ -116,6 +111,26 @@ export async function GET(request: NextRequest) {
     if (recentLeads) {
       for (const lead of recentLeads) {
         leadIds.push(lead.id);
+
+        const createdAt = lead.created_at ? new Date(lead.created_at) : null;
+        const lastInteractionAt = lead.last_interaction
+          ? new Date(lead.last_interaction)
+          : null;
+
+        if (createdAt && createdAt >= sevenDaysAgo) {
+          newLeadsLast7Days += 1;
+        }
+
+        if (createdAt && createdAt >= todayStart && createdAt < tomorrowStart) {
+          newLeadsToday += 1;
+        }
+
+        if (
+          (createdAt && createdAt >= lastLogin) ||
+          (lastInteractionAt && lastInteractionAt >= lastLogin)
+        ) {
+          newSinceLastLogin += 1;
+        }
 
         // Leads per day (created_at)
         if (lead.created_at) {
@@ -242,17 +257,6 @@ export async function GET(request: NextRequest) {
       conversationsPerDay.push({ date: dateStr, count: (conversationsPerDayMap[dateStr] && conversationsPerDayMap[dateStr].size) || 0 });
       messagesPerDay.push({ date: dateStr, count: messagesPerDayMap[dateStr] || 0 });
     }
-
-    // Novos desde último login (último dia) - manter para badge/newness
-    const lastLogin = new Date();
-    lastLogin.setDate(lastLogin.getDate() - 1);
-    const { count: newSinceLastLogin } = await supabase
-      .from("leads")
-      .select("*", { count: "exact", head: true })
-      .eq("tenant_id", tenantId)
-      .or(
-        `created_at.gte.${lastLogin.toISOString()},last_interaction.gte.${lastLogin.toISOString()}`
-      );
 
     return NextResponse.json({
       totalLeads: totalLeads || 0,
