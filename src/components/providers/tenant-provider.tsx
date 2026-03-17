@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import type { Tenant } from "@/types/database";
 import { createClient } from "@/lib/supabase/client";
+import { SELECTED_TENANT_COOKIE } from "@/lib/tenants/constants";
 
 interface TenantContextType {
   tenants: Tenant[];
@@ -28,13 +29,37 @@ export function useTenant() {
   return useContext(TenantContext);
 }
 
-export function TenantProvider({ children }: { children: React.ReactNode }) {
-  const [tenants, setTenants] = useState<Tenant[]>([]);
-  const [selectedTenantId, setSelectedTenantIdState] = useState<string | null>(null);
-  const [userName, setUserName] = useState<string | null>(null);
-  const [userEmail, setUserEmail] = useState<string>("");
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [loading, setLoading] = useState(true);
+type TenantProviderProps = {
+  children: React.ReactNode;
+  initialTenants?: Tenant[];
+  initialSelectedTenantId?: string | null;
+  initialUserName?: string | null;
+  initialUserEmail?: string;
+  initialIsAdmin?: boolean;
+};
+
+function setTenantCookie(tenantId: string) {
+  if (typeof document === "undefined") return;
+  document.cookie = `${SELECTED_TENANT_COOKIE}=${tenantId}; path=/; max-age=31536000; samesite=lax`;
+}
+
+export function TenantProvider({
+  children,
+  initialTenants,
+  initialSelectedTenantId,
+  initialUserName,
+  initialUserEmail,
+  initialIsAdmin,
+}: TenantProviderProps) {
+  const hasInitialData = Boolean(initialTenants);
+  const [tenants, setTenants] = useState<Tenant[]>(initialTenants ?? []);
+  const [selectedTenantId, setSelectedTenantIdState] = useState<string | null>(
+    initialSelectedTenantId ?? null
+  );
+  const [userName, setUserName] = useState<string | null>(initialUserName ?? null);
+  const [userEmail, setUserEmail] = useState<string>(initialUserEmail ?? "");
+  const [isAdmin, setIsAdmin] = useState(Boolean(initialIsAdmin));
+  const [loading, setLoading] = useState(!hasInitialData);
 
   const fetchTenants = useCallback(async () => {
     try {
@@ -83,13 +108,15 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
 
       setTenants(tenantsData);
 
-      // Restaurar seleção do localStorage ou auto-selecionar
       const savedId = localStorage.getItem("selectedTenantId");
       if (savedId && tenantsData.some((t) => t.id === savedId)) {
         setSelectedTenantIdState(savedId);
+        setTenantCookie(savedId);
       } else if (tenantsData.length > 0) {
-        setSelectedTenantIdState(tenantsData[0].id);
-        localStorage.setItem("selectedTenantId", tenantsData[0].id);
+        const nextTenantId = tenantsData[0].id;
+        setSelectedTenantIdState(nextTenantId);
+        localStorage.setItem("selectedTenantId", nextTenantId);
+        setTenantCookie(nextTenantId);
       }
     } catch (error) {
       console.error("Erro ao carregar tenants:", error);
@@ -99,12 +126,21 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    if (hasInitialData) {
+      return;
+    }
+
     fetchTenants();
-  }, [fetchTenants]);
+  }, [fetchTenants, hasInitialData]);
+
+  useEffect(() => {
+    if (!selectedTenantId) return;
+    localStorage.setItem("selectedTenantId", selectedTenantId);
+    setTenantCookie(selectedTenantId);
+  }, [selectedTenantId]);
 
   const setSelectedTenantId = (id: string) => {
     setSelectedTenantIdState(id);
-    localStorage.setItem("selectedTenantId", id);
   };
 
   const selectedTenant = tenants.find((t) => t.id === selectedTenantId) || null;
