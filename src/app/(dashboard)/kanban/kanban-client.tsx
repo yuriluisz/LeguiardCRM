@@ -30,6 +30,7 @@ import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { createLeaderTabCoordinator } from "@/lib/realtime/leader-tab";
 import type { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
+import { getJsonWithDedupe } from "@/lib/utils/client-get-cache";
 
 type KanbanClientProps = {
   initialLeads: Lead[];
@@ -64,6 +65,10 @@ export default function KanbanClient({
     })
   );
 
+  useEffect(() => {
+    router.prefetch("/conversations");
+  }, [router]);
+
   const fetchLeads = useCallback(async (options?: { showLoading?: boolean }) => {
     if (!selectedTenant) return;
     const showLoading = options?.showLoading ?? false;
@@ -85,15 +90,13 @@ export default function KanbanClient({
     }
 
     try {
-      const res = await fetch(
-        `/api/leads?tenant_id=${selectedTenant.id}&limit=300&lite=true`
+      const data = await getJsonWithDedupe<{ leads?: Lead[] }>(
+        `/api/leads?tenant_id=${selectedTenant.id}&limit=300&lite=true`,
+        { cacheMs: 4000 }
       );
-      if (res.ok) {
-        const data = await res.json();
-        setLeads(data.leads);
-        if (!showLoading) {
-          lastSilentSyncAtRef.current = Date.now();
-        }
+      setLeads((data.leads as Lead[]) ?? []);
+      if (!showLoading) {
+        lastSilentSyncAtRef.current = Date.now();
       }
     } catch (error) {
       console.error("Erro ao carregar leads:", error);

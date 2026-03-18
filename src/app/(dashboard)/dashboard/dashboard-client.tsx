@@ -10,6 +10,7 @@ import { FollowupDistributionChart } from "@/components/dashboard/followup-distr
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { createClient } from "@/lib/supabase/client";
+import { getJsonWithDedupe } from "@/lib/utils/client-get-cache";
 
 type DashboardClientProps = {
   initialMetrics: DashboardMetrics | null;
@@ -35,11 +36,11 @@ export default function DashboardClient({
       if (!silent) setLoading(true);
 
       try {
-        const res = await fetch(`/api/dashboard?tenant_id=${selectedTenant.id}`);
-        if (res.ok) {
-          const data = await res.json();
-          setMetrics(data);
-        }
+        const data = await getJsonWithDedupe<DashboardMetrics>(
+          `/api/dashboard?tenant_id=${selectedTenant.id}`,
+          { cacheMs: 2000 }
+        );
+        setMetrics(data);
       } catch (error) {
         console.error("Erro ao carregar métricas:", error);
       } finally {

@@ -1,13 +1,43 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { AppHeader } from "@/components/layout/app-header";
 import { useTenant } from "@/components/providers/tenant-provider";
+import { warmupSupabaseSession } from "@/lib/supabase/proactive-refresh";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { userName, userEmail } = useTenant();
+
+  useEffect(() => {
+    void warmupSupabaseSession();
+
+    const onFocus = () => {
+      void warmupSupabaseSession();
+    };
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void warmupSupabaseSession();
+      }
+    };
+
+    const intervalId = window.setInterval(() => {
+      if (document.visibilityState === "visible") {
+        void warmupSupabaseSession();
+      }
+    }, 5 * 60 * 1000);
+
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.clearInterval(intervalId);
+    };
+  }, []);
 
   return (
     <div className="flex h-dvh min-h-0 overflow-hidden">

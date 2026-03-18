@@ -2,8 +2,8 @@ import { redirect } from "next/navigation";
 import type { CrmConfig, Interaction, Lead } from "@/types/database";
 import ConversationsClient from "./conversations-client";
 import { getAccessibleTenantsServer } from "@/lib/tenants/get-accessible-tenants-server";
-import { getTenantLeadsLite } from "@/lib/leads/get-tenant-leads-lite";
-import { getConversationInitialData } from "@/lib/conversations/get-conversation-initial-data";
+import { getTenantLeadsLiteCached } from "@/lib/leads/get-tenant-leads-lite";
+import { getConversationInitialDataCached } from "@/lib/conversations/get-conversation-initial-data";
 
 type ConversationsPageProps = {
   searchParams: Promise<{ lead?: string }>;
@@ -12,7 +12,7 @@ type ConversationsPageProps = {
 export default async function ConversationsPage({
   searchParams,
 }: ConversationsPageProps) {
-  const { supabase, user, selectedTenantId } = await getAccessibleTenantsServer();
+  const { user, selectedTenantId } = await getAccessibleTenantsServer();
   const params = await searchParams;
 
   if (!user) {
@@ -32,8 +32,8 @@ export default async function ConversationsPage({
   }
 
   const [initialLeads, conversationSeed] = await Promise.all([
-    getTenantLeadsLite(supabase, selectedTenantId, 300),
-    getConversationInitialData(supabase, selectedTenantId, params.lead || null),
+    getTenantLeadsLiteCached(selectedTenantId, 300),
+    getConversationInitialDataCached(selectedTenantId, params.lead || null),
   ]);
 
   return (

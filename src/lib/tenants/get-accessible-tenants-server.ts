@@ -4,6 +4,27 @@ import { createClient } from "@/lib/supabase/server";
 import type { Tenant } from "@/types/database";
 import { SELECTED_TENANT_COOKIE } from "@/lib/tenants/constants";
 
+const TENANTS_BASE_SELECT = "id,name,description,plan_level,kanban_config,follow_status";
+
+type TenantBaseRow = Pick<
+  Tenant,
+  "id" | "name" | "description" | "plan_level" | "kanban_config" | "follow_status"
+>;
+
+function normalizeTenant(row: TenantBaseRow): Tenant {
+  return {
+    id: row.id,
+    name: row.name,
+    description: row.description,
+    plan_level: row.plan_level,
+    kanban_config: row.kanban_config,
+    follow_status: row.follow_status,
+    crm_config: null,
+    ai_config_followup: null,
+    follow_config: null,
+  };
+}
+
 type AccessibleTenantsResult = {
   supabase: Awaited<ReturnType<typeof createClient>>;
   user: { id: string; email?: string | null } | null;
@@ -42,8 +63,11 @@ export const getAccessibleTenantsServer = cache(async (): Promise<AccessibleTena
 
   let tenants: Tenant[] = [];
   if (isAdmin) {
-    const { data } = await supabase.from("tenants").select("*").order("name");
-    tenants = (data as Tenant[]) || [];
+    const { data } = await supabase
+      .from("tenants")
+      .select(TENANTS_BASE_SELECT)
+      .order("name");
+    tenants = ((data as TenantBaseRow[] | null) || []).map(normalizeTenant);
   } else {
     const { data: userTenants } = await supabase
       .from("crm_user_tenants")
@@ -54,10 +78,10 @@ export const getAccessibleTenantsServer = cache(async (): Promise<AccessibleTena
       const tenantIds = userTenants.map((entry: { tenant_id: string }) => entry.tenant_id);
       const { data } = await supabase
         .from("tenants")
-        .select("*")
+        .select(TENANTS_BASE_SELECT)
         .in("id", tenantIds)
         .order("name");
-      tenants = (data as Tenant[]) || [];
+      tenants = ((data as TenantBaseRow[] | null) || []).map(normalizeTenant);
     }
   }
 

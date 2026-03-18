@@ -82,6 +82,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { getJsonWithDedupe } from "@/lib/utils/client-get-cache";
 
 const DAYS = [
   { value: 0, label: "Dom" },
@@ -455,6 +456,10 @@ export default function FollowupClient({
   const [activeId, setActiveId] = useState<string | null>(null);
 
   useEffect(() => {
+    router.prefetch("/conversations");
+  }, [router]);
+
+  useEffect(() => {
     if (!tenantLoading && isBronzeTenant) {
       toast.error("Follow-up indisponível no plano Bronze.");
       router.replace("/dashboard");
@@ -505,9 +510,12 @@ export default function FollowupClient({
 
     setLoading(true);
     try {
-      const [tenantRes, leadsRes] = await Promise.all([
+      const [tenantRes, leadsPayload] = await Promise.all([
         fetch(`/api/tenants/${selectedTenant.id}`),
-        fetch(`/api/leads?tenant_id=${selectedTenant.id}&limit=300&lite=true`),
+        getJsonWithDedupe<{ leads?: Lead[] }>(
+          `/api/leads?tenant_id=${selectedTenant.id}&limit=300&lite=true`,
+          { cacheMs: 4000 }
+        ).catch(() => null),
       ]);
 
       if (!tenantRes.ok) {
@@ -525,9 +533,8 @@ export default function FollowupClient({
       setColumns(withUi(safeConfig.kanban.columns));
       setBusinessHours(safeConfig.business_hours);
 
-      if (leadsRes.ok) {
-        const payload = await leadsRes.json();
-        setLeads((payload.leads as Lead[]) ?? []);
+      if (leadsPayload) {
+        setLeads((leadsPayload.leads as Lead[]) ?? []);
       }
     } catch (error) {
       console.error(error);

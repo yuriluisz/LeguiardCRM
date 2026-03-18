@@ -1,10 +1,10 @@
 import { redirect } from "next/navigation";
 import DashboardClient from "./dashboard-client";
 import { getAccessibleTenantsServer } from "@/lib/tenants/get-accessible-tenants-server";
-import { getDashboardMetrics } from "@/lib/dashboard/get-dashboard-metrics";
+import { getDashboardMetricsCached } from "@/lib/dashboard/get-dashboard-metrics";
 
 export default async function DashboardPage() {
-  const { supabase, user, selectedTenantId } = await getAccessibleTenantsServer();
+  const { user, selectedTenantId } = await getAccessibleTenantsServer();
 
   if (!user) {
     redirect("/login");
@@ -14,7 +14,7 @@ export default async function DashboardPage() {
     return <DashboardClient initialMetrics={null} initialTenantId={null} />;
   }
 
-  const initialMetrics = await getDashboardMetrics(supabase, selectedTenantId);
+  const initialMetrics = await getDashboardMetricsCached(selectedTenantId);
 
   return (
     <DashboardClient

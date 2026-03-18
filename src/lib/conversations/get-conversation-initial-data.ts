@@ -1,6 +1,23 @@
 import { createClient } from "@/lib/supabase/server";
 import type { CrmConfig, Interaction, Lead } from "@/types/database";
 
+const CONVERSATION_SEED_TTL_MS = 15_000;
+
+type ConversationSeedCacheEntry = {
+  value: ConversationInitialData;
+  expiresAt: number;
+};
+
+const conversationSeedCache = new Map<string, ConversationSeedCacheEntry>();
+
+function clearExpiredConversationSeedCache(now: number) {
+  for (const [key, entry] of conversationSeedCache) {
+    if (entry.expiresAt <= now) {
+      conversationSeedCache.delete(key);
+    }
+  }
+}
+
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 
 type ConversationInitialData = {
@@ -20,7 +37,9 @@ export async function getConversationInitialData(
 
   const { data: lead } = await supabase
     .from("leads")
-    .select("*")
+    .select(
+      "id,tenant_id,phone,name,email,status_kanban,temperature,ai_active,not_a_lead,last_interaction,created_at,ai_run_count,conv_id,follow_stage,custom_data,ai_summary,history_sync_needed"
+    )
     .eq("id", leadId)
     .eq("tenant_id", tenantId)
     .maybeSingle();
@@ -39,7 +58,7 @@ export async function getConversationInitialData(
   const [{ data: interactions }, { data: tenant }] = await Promise.all([
     supabase
       .from("interactions")
-      .select("*")
+      .select("id,lead_id,role,content,created_at")
       .eq("lead_id", leadId)
       .order("created_at", { ascending: true }),
     supabase
@@ -54,4 +73,27 @@ export async function getConversationInitialData(
     interactions: (interactions as Interaction[] | null) || [],
     crmConfig: (tenant?.crm_config as CrmConfig | null) || null,
   };
+}
+
+export async function getConversationInitialDataCached(
+  tenantId: string,
+  leadId: string | null
+): Promise<ConversationInitialData> {
+  const cacheKey = `${tenantId}:${leadId || "none"}`;
+  const now = Date.now();
+  clearExpiredConversationSeedCache(now);
+
+  const cached = conversationSeedCache.get(cacheKey);
+  if (cached && cached.expiresAt > now) {
+    return cached.value;
+  }
+
+  const supabase = await createClient();
+  const value = await getConversationInitialData(supabase, tenantId, leadId);
+  conversationSeedCache.set(cacheKey, {
+    value,
+    expiresAt: now + CONVERSATION_SEED_TTL_MS,
+  });
+
+  return value;
 }

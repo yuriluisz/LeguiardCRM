@@ -8,6 +8,23 @@ import {
 } from "@/types/database";
 import { createClient } from "@/lib/supabase/server";
 
+const DASHBOARD_METRICS_TTL_MS = 20_000;
+
+type DashboardMetricsCacheEntry = {
+  value: DashboardMetrics;
+  expiresAt: number;
+};
+
+const dashboardMetricsCache = new Map<string, DashboardMetricsCacheEntry>();
+
+function clearExpiredDashboardMetricsCache(now: number) {
+  for (const [key, entry] of dashboardMetricsCache) {
+    if (entry.expiresAt <= now) {
+      dashboardMetricsCache.delete(key);
+    }
+  }
+}
+
 function normalizeStage(value: string | null | undefined): string {
   if (!value) return "";
   return String(value)
@@ -278,4 +295,25 @@ export async function getDashboardMetrics(
     messagesPerDay,
     newSinceLastLogin: newSinceLastLogin || 0,
   };
+}
+
+export async function getDashboardMetricsCached(
+  tenantId: string
+): Promise<DashboardMetrics> {
+  const now = Date.now();
+  clearExpiredDashboardMetricsCache(now);
+
+  const cached = dashboardMetricsCache.get(tenantId);
+  if (cached && cached.expiresAt > now) {
+    return cached.value;
+  }
+
+  const supabase = await createClient();
+  const value = await getDashboardMetrics(supabase, tenantId);
+  dashboardMetricsCache.set(tenantId, {
+    value,
+    expiresAt: now + DASHBOARD_METRICS_TTL_MS,
+  });
+
+  return value;
 }

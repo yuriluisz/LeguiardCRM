@@ -2,11 +2,12 @@ import { redirect } from "next/navigation";
 import type { FollowConfig } from "@/types/database";
 import FollowupClient from "./followup-client";
 import { getAccessibleTenantsServer } from "@/lib/tenants/get-accessible-tenants-server";
-import { getTenantLeadsLite } from "@/lib/leads/get-tenant-leads-lite";
+import { getTenantLeadsLiteCached } from "@/lib/leads/get-tenant-leads-lite";
 import { DEFAULT_FOLLOW_CONFIG } from "@/types/database";
+import { getTenantFollowupSettingsCached } from "@/lib/tenants/get-tenant-followup-settings";
 
 export default async function FollowupPage() {
-  const { supabase, user, selectedTenantId, tenants } =
+  const { user, selectedTenantId } =
     await getAccessibleTenantsServer();
 
   if (!user) {
@@ -24,11 +25,14 @@ export default async function FollowupPage() {
     );
   }
 
-  const selectedTenant = tenants.find((tenant) => tenant.id === selectedTenantId) || null;
-  const initialFollowStatus = Boolean(selectedTenant?.follow_status);
+  const [followupSettings, initialLeads] = await Promise.all([
+    getTenantFollowupSettingsCached(selectedTenantId),
+    getTenantLeadsLiteCached(selectedTenantId, 300),
+  ]);
+
+  const initialFollowStatus = followupSettings.followStatus;
   const initialFollowConfig =
-    (selectedTenant?.follow_config as FollowConfig | null) || DEFAULT_FOLLOW_CONFIG;
-  const initialLeads = await getTenantLeadsLite(supabase, selectedTenantId, 300);
+    (followupSettings.followConfig as FollowConfig | null) || DEFAULT_FOLLOW_CONFIG;
 
   return (
     <FollowupClient

@@ -46,11 +46,15 @@ export function TimeSeriesChart({ title, data, valueLabel = "Contagem", color = 
       </CardHeader>
       <CardContent>
         <div
-          className="dashboard-chart flex h-56 items-center justify-center overflow-hidden px-1 sm:h-64 sm:px-2"
+          className="dashboard-chart h-56 w-full overflow-hidden sm:h-64"
           onMouseDown={(e) => e.preventDefault()}
         >
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart accessibilityLayer={false} data={formattedData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
+            <AreaChart
+              accessibilityLayer={false}
+              data={formattedData}
+              margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
+            >
               <defs>
                 <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor={color} stopOpacity={0.28} />
@@ -58,8 +62,21 @@ export function TimeSeriesChart({ title, data, valueLabel = "Contagem", color = 
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-              <XAxis dataKey="dateLabel" className="text-xs" tick={{ fontSize: 11 }} interval="preserveStartEnd" minTickGap={24} />
-              <YAxis className="text-xs" tick={{ fontSize: 11 }} allowDecimals={false} />
+              <XAxis
+                dataKey="dateLabel"
+                className="text-xs"
+                tick={{ fontSize: 11 }}
+                interval="preserveStartEnd"
+                minTickGap={24}
+                tickMargin={8}
+              />
+              <YAxis
+                className="text-xs"
+                tick={{ fontSize: 11 }}
+                allowDecimals={false}
+                width={28}
+                tickMargin={6}
+              />
               <Tooltip
                 contentStyle={{
                   backgroundColor: "hsl(var(--popover))",

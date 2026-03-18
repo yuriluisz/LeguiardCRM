@@ -57,6 +57,7 @@ import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { createLeaderTabCoordinator } from "@/lib/realtime/leader-tab";
 import type { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
+import { getJsonWithDedupe } from "@/lib/utils/client-get-cache";
 
 type ConversationsClientProps = {
   initialTenantId: string | null;
@@ -181,10 +182,10 @@ export default function ConversationsClient({
         lite: "true",
       });
 
-      const res = await fetch(`/api/leads?${params.toString()}`);
-      if (!res.ok) throw new Error("Falha ao buscar leads");
-
-      const data = await res.json();
+      const data = await getJsonWithDedupe<{ leads?: Lead[] }>(
+        `/api/leads?${params.toString()}`,
+        { cacheMs: 4000 }
+      );
       const fetchedLeads = (data.leads as Lead[]) ?? [];
       setLeads(fetchedLeads);
       if (!showLoading) {
@@ -223,10 +224,11 @@ export default function ConversationsClient({
         }
 
         interactionsFetchInFlightRef.current = true;
-        const res = await fetch(`/api/leads/${leadId}`);
-        if (!res.ok) throw new Error("Falha ao buscar interações");
-
-        const data = await res.json();
+        const data = await getJsonWithDedupe<{
+          lead?: Lead;
+          interactions?: Interaction[];
+          crmConfig?: unknown;
+        }>(`/api/leads/${leadId}`);
         const fullLead = data.lead as Lead | undefined;
         setInteractions((data.interactions as Interaction[]) ?? []);
         setCrmConfig(normalizeCrmConfig(data.crmConfig));
@@ -265,11 +267,10 @@ export default function ConversationsClient({
   );
 
   useEffect(() => {
-    if (
-      selectedTenant &&
-      initialTenantId &&
-      selectedTenant.id === initialTenantId
-    ) {
+    const hasMatchingTenantSeed =
+      selectedTenant && initialTenantId && selectedTenant.id === initialTenantId;
+
+    if (hasMatchingTenantSeed) {
       setLeads(initialLeads);
       setLoading(false);
 
@@ -285,6 +286,10 @@ export default function ConversationsClient({
           );
           return;
         }
+      }
+
+      if (!leadParam) {
+        return;
       }
     }
 
