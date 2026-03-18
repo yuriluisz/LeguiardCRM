@@ -45,9 +45,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Update password in Supabase Auth using service role
-    const { data: authData, error: authErr } = await supabase.auth.admin.updateUserById(user_id, {
+    const { error: authErr } = await supabase.auth.admin.updateUserById(user_id, {
       password: new_password,
-    } as any);
+    });
 
     if (authErr) {
       console.error("Erro ao atualizar senha no Auth:", authErr);

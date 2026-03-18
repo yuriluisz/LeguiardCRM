@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
@@ -44,11 +45,18 @@ const navItems = [
 
 export function AppSidebar({ open, onClose }: AppSidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const { selectedTenant } = useTenant();
   const isBronzeTenant = String(selectedTenant?.plan_level || "").toLowerCase() === "bronze";
   const availableNavItems = isBronzeTenant
     ? navItems.filter((item) => item.href !== "/followup")
     : navItems;
+
+  useEffect(() => {
+    for (const item of availableNavItems) {
+      router.prefetch(item.href);
+    }
+  }, [availableNavItems, router]);
 
   return (
     <>
@@ -100,6 +108,7 @@ export function AppSidebar({ open, onClose }: AppSidebarProps) {
                 key={item.href}
                 href={item.href}
                 onClick={onClose}
+                onMouseEnter={() => router.prefetch(item.href)}
                 className={cn(
                   "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
                   isActive

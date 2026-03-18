@@ -13,7 +13,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Menu, LogOut, Moon, Sun, User } from "lucide-react";
 import { useTheme } from "next-themes";
-import { useEffect, useState } from "react";
 
 interface AppHeaderProps {
   onMenuToggle: () => void;
@@ -23,12 +22,7 @@ interface AppHeaderProps {
 
 export function AppHeader({ onMenuToggle, userName, userEmail }: AppHeaderProps) {
   const router = useRouter();
-  const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const { resolvedTheme, setTheme } = useTheme();
 
   async function handleLogout() {
     const supabase = createClient();
@@ -36,15 +30,6 @@ export function AppHeader({ onMenuToggle, userName, userEmail }: AppHeaderProps)
     router.push("/login");
     router.refresh();
   }
-
-  const initials = userName
-    ? userName
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2)
-    : userEmail?.slice(0, 2).toUpperCase() || "U";
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-2 border-b bg-background px-3 sm:gap-3 sm:px-4 lg:gap-4 lg:px-6">
@@ -64,19 +49,14 @@ export function AppHeader({ onMenuToggle, userName, userEmail }: AppHeaderProps)
 
       {/* Actions */}
       <div className="flex shrink-0 items-center gap-1 sm:gap-2">
-        {mounted && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-          >
-            {theme === "dark" ? (
-              <Sun className="h-5 w-5" />
-            ) : (
-              <Moon className="h-5 w-5" />
-            )}
-          </Button>
-        )}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+        >
+          <Sun className="hidden h-5 w-5 dark:block" />
+          <Moon className="h-5 w-5 dark:hidden" />
+        </Button>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

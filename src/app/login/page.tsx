@@ -160,7 +160,7 @@ function LoginContent() {
 
       router.push("/dashboard");
       router.refresh();
-    } catch (err) {
+    } catch {
       setError("Erro inesperado. Tente novamente.");
     } finally {
       setLoading(false);
@@ -181,7 +181,7 @@ function LoginContent() {
         }
         const data = await res.json();
         setTokenUser({ id: data.id, email: data.email, name: data.name });
-      } catch (err) {
+      } catch {
         setError("Erro ao validar token.");
       } finally {
         setLoading(false);
@@ -230,7 +230,7 @@ function LoginContent() {
       // Redirect to login page with success flag
       router.push("/login?onboard=success");
       router.refresh();
-    } catch (err) {
+    } catch {
       setError("Erro inesperado. Tente novamente.");
     } finally {
       setLoading(false);

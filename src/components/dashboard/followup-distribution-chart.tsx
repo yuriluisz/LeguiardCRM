@@ -29,8 +29,14 @@ export function FollowupDistributionChart({ data }: FollowupDistributionChartPro
       fill: item.color || "#10b981",
     }));
 
+  const rowHeight = 36;
+  const dynamicHeight = Math.min(
+    560,
+    Math.max(220, chartData.length * rowHeight + 80)
+  );
+
   return (
-    <Card>
+    <Card className="h-auto self-start">
       <CardHeader>
         <CardTitle className="text-base">Etapas de Follow-up</CardTitle>
         <p className="text-xs text-muted-foreground">
@@ -38,17 +44,34 @@ export function FollowupDistributionChart({ data }: FollowupDistributionChartPro
         </p>
       </CardHeader>
       <CardContent>
-        <div className="dashboard-chart h-64 sm:h-72" onMouseDown={(e) => e.preventDefault()}>
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart accessibilityLayer={false} data={chartData} layout="vertical" margin={{ left: 24 }}>
+        <div
+          className="dashboard-chart min-w-0 w-full overflow-hidden"
+          style={{ height: dynamicHeight }}
+          onMouseDown={(e) => e.preventDefault()}
+        >
+          <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+            <BarChart
+              accessibilityLayer={false}
+              data={chartData}
+              layout="vertical"
+              margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
+              barCategoryGap="20%"
+            >
               <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-              <XAxis type="number" className="text-xs" tick={{ fontSize: 11 }} allowDecimals={false} />
+              <XAxis
+                type="number"
+                className="text-xs"
+                tick={{ fontSize: 11 }}
+                tickMargin={8}
+                allowDecimals={false}
+              />
               <YAxis
                 type="category"
                 dataKey="stage"
                 className="text-xs"
                 tick={{ fontSize: 11 }}
-                width={88}
+                width={84}
+                tickMargin={6}
               />
               <Tooltip
                 contentStyle={{
@@ -59,7 +82,7 @@ export function FollowupDistributionChart({ data }: FollowupDistributionChartPro
                 }}
                 formatter={(value) => [value, "Leads"]}
               />
-              <Bar dataKey="count" radius={[0, 4, 4, 0]}>
+              <Bar dataKey="count" radius={[0, 4, 4, 0]} barSize={24}>
                 {chartData.map((entry) => (
                   <Cell key={entry.stage} fill={entry.fill} />
                 ))}

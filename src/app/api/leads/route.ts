@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ensureTenantAccess, getAuthenticatedContext } from "@/lib/auth/tenant-access";
 
+type LeadRow = Record<string, unknown> & {
+  status_kanban?: string | null;
+};
+
 export async function GET(request: NextRequest) {
   try {
     const { supabase, user, isAdmin } = await getAuthenticatedContext();
@@ -73,7 +77,8 @@ export async function GET(request: NextRequest) {
     if (error) throw error;
 
     // Normalize status_kanban to lowercase keys expected by the frontend
-    const normalized = (data || []).map((lead: any) => ({
+    const rawRows = ((data ?? []) as unknown) as LeadRow[];
+    const normalized = rawRows.map((lead) => ({
       ...lead,
       status_kanban: lead.status_kanban ? String(lead.status_kanban).toLowerCase() : lead.status_kanban,
     }));
