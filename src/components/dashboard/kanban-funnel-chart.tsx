@@ -34,9 +34,13 @@ export function KanbanFunnelChart({ data }: KanbanFunnelChartProps) {
   const firstStageCount = chartData[0]?.value || 0;
   const lastStageCount = chartData[chartData.length - 1]?.value || 0;
   const conversionRate = firstStageCount > 0 ? (lastStageCount / firstStageCount) * 100 : 0;
+  const dynamicHeight = Math.min(
+    620,
+    Math.max(240, chartData.length * 52 + 80)
+  );
 
   return (
-    <Card>
+    <Card className="h-auto self-start">
       <CardHeader>
         <div>
           <CardTitle className="text-base">Funil do Kanban Principal</CardTitle>
@@ -62,7 +66,11 @@ export function KanbanFunnelChart({ data }: KanbanFunnelChartProps) {
         </div>
       </CardHeader>
       <CardContent>
-        <div className="dashboard-chart h-64 min-w-0 sm:h-72 lg:h-80" onMouseDown={(e) => e.preventDefault()}>
+        <div
+          className="dashboard-chart min-w-0"
+          style={{ height: dynamicHeight }}
+          onMouseDown={(e) => e.preventDefault()}
+        >
           <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
             <FunnelChart margin={{ top: 12, right: 12, left: 12, bottom: 12 }}>
               <Tooltip

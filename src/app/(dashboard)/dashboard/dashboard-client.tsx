@@ -205,7 +205,7 @@ export default function DashboardClient({
       </div>
 
       <div
-        className={`grid gap-6 ${
+        className={`grid items-start gap-6 ${
           isBronzeTenant ? "xl:grid-cols-1" : "xl:grid-cols-2"
         }`}
       >
