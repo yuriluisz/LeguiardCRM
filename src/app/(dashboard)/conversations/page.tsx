@@ -32,7 +32,7 @@ export default async function ConversationsPage({
   }
 
   const [initialLeads, conversationSeed] = await Promise.all([
-    getTenantLeadsLiteCached(selectedTenantId, 300),
+    getTenantLeadsLiteCached(selectedTenantId, 120),
     getConversationInitialDataCached(selectedTenantId, params.lead || null),
   ]);
 

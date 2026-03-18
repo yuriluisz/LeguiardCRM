@@ -116,6 +116,9 @@ export default function KanbanClient({
     ) {
       setLeads(initialLeads);
       setLoading(false);
+      if (initialLeads.length < 300) {
+        void fetchLeads({ showLoading: false });
+      }
       return;
     }
 

@@ -30,8 +30,6 @@ import {
   Thermometer,
   Snowflake,
   HelpCircle,
-  ChevronDown,
-  Save,
   PanelRightOpen,
   PanelRightClose,
   Sparkles,
@@ -44,7 +42,6 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -126,9 +123,6 @@ export default function ConversationsClient({
   const [search, setSearch] = useState("");
   const [showSidebar, setShowSidebar] = useState(true);
   const [showInfoPanel, setShowInfoPanel] = useState(true);
-  const [customDataRaw, setCustomDataRaw] = useState("");
-  const [savingCustom, setSavingCustom] = useState(false);
-  const [showCustomData, setShowCustomData] = useState(false);
   const [savingStatus, setSavingStatus] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const initialLeadLoaded = useRef(false);
@@ -273,6 +267,9 @@ export default function ConversationsClient({
     if (hasMatchingTenantSeed) {
       setLeads(initialLeads);
       setLoading(false);
+      if (initialLeads.length < 300) {
+        void fetchLeads({ showLoading: false });
+      }
 
       if (leadParam && !initialLeadLoaded.current) {
         initialLeadLoaded.current = true;
@@ -281,9 +278,6 @@ export default function ConversationsClient({
           setSelectedLead(initialSelectedLead);
           setInteractions(initialInteractions);
           setCrmConfig(initialCrmConfig);
-          setCustomDataRaw(
-            JSON.stringify(initialSelectedLead.custom_data ?? {}, null, 2)
-          );
           return;
         }
       }
@@ -502,8 +496,6 @@ export default function ConversationsClient({
   // Fetch interactions when a lead is selected
   async function selectLead(lead: Lead) {
     setSelectedLead(lead);
-    setCustomDataRaw(JSON.stringify(lead.custom_data ?? {}, null, 2));
-    setShowCustomData(false);
 
     // On mobile, hide leads sidebar when a lead is selected
     if (window.innerWidth < 768) {
@@ -617,34 +609,6 @@ export default function ConversationsClient({
       }
       toast.error("Erro ao atualizar status");
     }
-  }
-
-  async function saveCustomData() {
-    if (!selectedLead) return;
-    setSavingCustom(true);
-    try {
-      const parsed = JSON.parse(customDataRaw);
-      const res = await fetch(`/api/leads/${selectedLead.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ custom_data: parsed }),
-      });
-
-      if (!res.ok) throw new Error();
-
-      setLeads((prev) =>
-        prev.map((l) =>
-          l.id === selectedLead.id ? { ...l, custom_data: parsed } : l
-        )
-      );
-      setSelectedLead((prev) =>
-        prev ? { ...prev, custom_data: parsed } : prev
-      );
-      toast.success("Custom data salvo");
-    } catch {
-      toast.error("Erro ao salvar (verifique se o JSON é válido)");
-    }
-    setSavingCustom(false);
   }
 
   async function changeStatus(leadId: string, newStatus: StatusKanban) {

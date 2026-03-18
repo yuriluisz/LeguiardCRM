@@ -4,6 +4,13 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
+type CrmUserValidateRow = {
+  id: string;
+  email: string;
+  name: string | null;
+  newuser_token_expires_at?: string | null;
+};
+
 export async function GET(request: NextRequest) {
   try {
     const url = new URL(request.url);
@@ -33,7 +40,8 @@ export async function GET(request: NextRequest) {
     }
 
     // If the column exists, enforce expiration.
-    const expiresAt = (data as any)?.newuser_token_expires_at;
+    const row = data as CrmUserValidateRow;
+    const expiresAt = row.newuser_token_expires_at;
     if (expiresAt) {
       const expires = new Date(expiresAt);
       if (isNaN(expires.getTime())) {
@@ -43,7 +51,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ id: data.id, email: data.email, name: data.name });
+    return NextResponse.json({ id: row.id, email: row.email, name: row.name });
   } catch (err) {
     console.error(err);
     return NextResponse.json({ error: "Erro interno" }, { status: 500 });

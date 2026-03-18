@@ -51,6 +51,18 @@ export async function updateSession(request: NextRequest) {
     request,
   });
 
+  // For app/page navigations, keep middleware lightweight and let page/layout
+  // server checks handle user validation to avoid duplicated auth round-trips.
+  if (!isApiPath) {
+    if (!hasAuthCookie && !isPublicPath) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/login";
+      url.search = "";
+      return NextResponse.redirect(url);
+    }
+    return supabaseResponse;
+  }
+
   // Skip auth.getUser when there is no auth cookie for public or API routes.
   if (!hasAuthCookie && (isPublicPath || isApiPath)) {
     return supabaseResponse;

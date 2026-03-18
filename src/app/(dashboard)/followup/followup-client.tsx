@@ -505,10 +505,14 @@ export default function FollowupClient({
     return map;
   }, [leads]);
 
-  const loadTenant = useCallback(async () => {
+  const loadTenant = useCallback(async (options?: { showLoading?: boolean }) => {
     if (!selectedTenant) return;
 
-    setLoading(true);
+    const showLoading = options?.showLoading ?? true;
+
+    if (showLoading) {
+      setLoading(true);
+    }
     try {
       const [tenantRes, leadsPayload] = await Promise.all([
         fetch(`/api/tenants/${selectedTenant.id}`),
@@ -540,7 +544,9 @@ export default function FollowupClient({
       console.error(error);
       toast.error(error instanceof Error ? error.message : "Erro ao carregar follow-up");
     } finally {
-      setLoading(false);
+      if (showLoading) {
+        setLoading(false);
+      }
     }
   }, [selectedTenant]);
 
@@ -549,11 +555,14 @@ export default function FollowupClient({
 
     if (initialTenantId && selectedTenant.id === initialTenantId) {
       setLoading(false);
+      if (initialLeads.length < 300) {
+        void loadTenant({ showLoading: false });
+      }
       return;
     }
 
     void loadTenant();
-  }, [initialTenantId, loadTenant, selectedTenant]);
+  }, [initialLeads.length, initialTenantId, loadTenant, selectedTenant]);
 
   function openCreateStage() {
     setEditingStageUiId(null);

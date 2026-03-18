@@ -27,7 +27,7 @@ export default async function FollowupPage() {
 
   const [followupSettings, initialLeads] = await Promise.all([
     getTenantFollowupSettingsCached(selectedTenantId),
-    getTenantLeadsLiteCached(selectedTenantId, 300),
+    getTenantLeadsLiteCached(selectedTenantId, 120),
   ]);
 
   const initialFollowStatus = followupSettings.followStatus;
