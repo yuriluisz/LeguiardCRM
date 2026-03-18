@@ -46,10 +46,10 @@ export function TimeSeriesChart({ title, data, valueLabel = "Contagem", color = 
       </CardHeader>
       <CardContent>
         <div
-          className="dashboard-chart h-56 w-full overflow-hidden sm:h-64"
+          className="dashboard-chart h-56 min-w-0 w-full overflow-hidden sm:h-64"
           onMouseDown={(e) => e.preventDefault()}
         >
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
             <AreaChart
               accessibilityLayer={false}
               data={formattedData}

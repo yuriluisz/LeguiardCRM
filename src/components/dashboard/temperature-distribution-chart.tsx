@@ -45,8 +45,8 @@ export function TemperatureDistributionChart({
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="dashboard-chart h-64" onMouseDown={(e) => e.preventDefault()}>
-          <ResponsiveContainer width="100%" height="100%">
+        <div className="dashboard-chart h-64 min-w-0" onMouseDown={(e) => e.preventDefault()}>
+          <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
             <PieChart accessibilityLayer={false}>
               <Pie
                 data={formattedData}
