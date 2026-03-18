@@ -7,6 +7,8 @@ import {
   sanitizeFollowConfig,
 } from "@/lib/followup/kanban-injection";
 import type { AiConfigFollowup, FollowConfig } from "@/types/database";
+import { getDemoTenantPayload } from "@/lib/demo/demo-data";
+import { isDemoModeEnabledForRequestCookie } from "@/lib/demo/demo-mode";
 
 function resolveHoraDiff(config: FollowConfig): string {
   const firstColumn = [...(config.kanban.columns ?? [])].sort((a, b) => a.order - b.order)[0];
@@ -46,10 +48,11 @@ function normalizeAiConfig(input: unknown, fallbackInstructions: string): AiConf
 }
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const demoMode = isDemoModeEnabledForRequestCookie(request.cookies.get("crm_demo_mode")?.value);
     const { id } = await params;
     const auth = await getAuthenticatedContext();
 
@@ -60,6 +63,10 @@ export async function GET(
     const canAccess = await ensureTenantAccess(auth.user.id, id, auth.isAdmin);
     if (!canAccess) {
       return NextResponse.json({ error: "Sem acesso a este tenant" }, { status: 403 });
+    }
+
+    if (demoMode) {
+      return NextResponse.json(getDemoTenantPayload(id));
     }
 
     const admin = getAdminClient();
@@ -98,6 +105,14 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const demoMode = isDemoModeEnabledForRequestCookie(request.cookies.get("crm_demo_mode")?.value);
+    if (demoMode) {
+      return NextResponse.json(
+        { error: "Modo Demo ativo: alteracoes estao bloqueadas." },
+        { status: 403 }
+      );
+    }
+
     const { id } = await params;
     const auth = await getAuthenticatedContext();
 

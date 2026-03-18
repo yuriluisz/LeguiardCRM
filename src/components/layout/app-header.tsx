@@ -4,15 +4,18 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { TenantSelector } from "./tenant-selector";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Menu, LogOut, Moon, Sun, User } from "lucide-react";
+import { Menu, LogOut, Moon, Sparkles, Sun, User } from "lucide-react";
 import { useTheme } from "next-themes";
+import { useTenant } from "@/components/providers/tenant-provider";
 
 interface AppHeaderProps {
   onMenuToggle: () => void;
@@ -23,6 +26,12 @@ interface AppHeaderProps {
 export function AppHeader({ onMenuToggle, userName, userEmail }: AppHeaderProps) {
   const router = useRouter();
   const { resolvedTheme, setTheme } = useTheme();
+  const { demoMode, setDemoMode } = useTenant();
+
+  function handleDemoModeChange(checked: boolean) {
+    setDemoMode(checked);
+    router.refresh();
+  }
 
   async function handleLogout() {
     const supabase = createClient();
@@ -44,11 +53,23 @@ export function AppHeader({ onMenuToggle, userName, userEmail }: AppHeaderProps)
 
       {/* Tenant Selector */}
       <div className="min-w-0 flex-1">
-        <TenantSelector />
+        {demoMode ? (
+          <div className="flex h-10 items-center rounded-md border border-amber-500/30 bg-amber-500/10 px-3 text-sm font-medium text-amber-700">
+            Tenant Demo
+          </div>
+        ) : (
+          <TenantSelector />
+        )}
       </div>
 
       {/* Actions */}
       <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+        {demoMode && (
+          <Badge variant="outline" className="hidden border-amber-500/40 bg-amber-500/10 text-amber-700 sm:inline-flex">
+            Demo ativo
+          </Badge>
+        )}
+
         <Button
           variant="ghost"
           size="icon"
@@ -75,6 +96,14 @@ export function AppHeader({ onMenuToggle, userName, userEmail }: AppHeaderProps)
                 )}
               </div>
             </div>
+            <DropdownMenuSeparator />
+            <DropdownMenuCheckboxItem
+              checked={demoMode}
+              onCheckedChange={(checked) => handleDemoModeChange(Boolean(checked))}
+            >
+              <Sparkles className="mr-2 h-4 w-4" />
+              Modo Demo
+            </DropdownMenuCheckboxItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout} className="text-destructive">
               <LogOut className="mr-2 h-4 w-4" />

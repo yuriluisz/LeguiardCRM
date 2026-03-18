@@ -112,7 +112,7 @@ export default function ConversationsClient({
   const searchParams = useSearchParams();
   const router = useRouter();
   const leadParam = searchParams.get("lead");
-  const { selectedTenant, loading: tenantLoading } = useTenant();
+  const { selectedTenant, loading: tenantLoading, demoMode } = useTenant();
 
   const [leads, setLeads] = useState<Lead[]>(initialLeads);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(initialSelectedLead);
@@ -311,6 +311,7 @@ export default function ConversationsClient({
 
   useEffect(() => {
     if (!selectedTenant) return;
+    if (demoMode) return;
 
     const supabase = createClient();
     const channelTopic = `conversations-leads-${selectedTenant.id}-${Math.random().toString(36).slice(2)}`;
@@ -402,10 +403,11 @@ export default function ConversationsClient({
       window.clearInterval(leadsSyncTimer);
       void supabase.removeChannel(channel);
     };
-  }, [fetchLeads, normalizeLead, selectedLead?.id, selectedTenant]);
+  }, [demoMode, fetchLeads, normalizeLead, selectedLead?.id, selectedTenant]);
 
   useEffect(() => {
     if (!selectedLead?.id) return;
+    if (demoMode) return;
 
     const supabase = createClient();
     const channelTopic = `conversations-interactions-${selectedLead.id}-${Math.random().toString(36).slice(2)}`;
@@ -491,7 +493,7 @@ export default function ConversationsClient({
       window.clearInterval(syncTimer);
       void supabase.removeChannel(channel);
     };
-  }, [fetchLeadConversation, selectedLead?.id]);
+  }, [demoMode, fetchLeadConversation, selectedLead?.id]);
 
   // Fetch interactions when a lead is selected
   async function selectLead(lead: Lead) {
@@ -516,6 +518,11 @@ export default function ConversationsClient({
   }, [interactions]);
 
   async function resetConvId(leadId: string) {
+    if (demoMode) {
+      toast.info("Modo Demo ativo: alteracoes estao bloqueadas.");
+      return;
+    }
+
     try {
       const res = await fetch(`/api/leads/${leadId}`, {
         method: "PATCH",
@@ -538,6 +545,11 @@ export default function ConversationsClient({
   }
 
   async function toggleAi(leadId: string, currentValue: boolean) {
+    if (demoMode) {
+      toast.info("Modo Demo ativo: alteracoes estao bloqueadas.");
+      return;
+    }
+
     // Optimistic update
     const newValue = !currentValue;
     setLeads((prev) =>
@@ -576,6 +588,11 @@ export default function ConversationsClient({
   }
 
   async function toggleNotALead(leadId: string, currentValue: boolean) {
+    if (demoMode) {
+      toast.info("Modo Demo ativo: alteracoes estao bloqueadas.");
+      return;
+    }
+
     const newValue = !currentValue;
     setLeads((prev) =>
       prev.map((l) => (l.id === leadId ? { ...l, not_a_lead: newValue } : l))
@@ -613,6 +630,11 @@ export default function ConversationsClient({
 
   async function changeStatus(leadId: string, newStatus: StatusKanban) {
     if (!selectedLead) return;
+    if (demoMode) {
+      toast.info("Modo Demo ativo: alteracoes estao bloqueadas.");
+      return;
+    }
+
     const oldStatus = selectedLead.status_kanban;
     setSavingStatus(true);
 
@@ -713,6 +735,11 @@ export default function ConversationsClient({
         {/* Sidebar Header */}
         <div className="p-3 space-y-2 border-b shrink-0">
           <h3 className="text-sm font-semibold px-1">Conversas</h3>
+          {demoMode && (
+            <p className="px-1 text-xs font-medium text-amber-600">
+              Modo Demo ativo: conversa em somente leitura.
+            </p>
+          )}
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <Input

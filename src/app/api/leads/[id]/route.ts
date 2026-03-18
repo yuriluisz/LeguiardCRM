@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ensureTenantAccess, getAuthenticatedContext } from "@/lib/auth/tenant-access";
 import { DEFAULT_KANBAN_COLUMNS } from "@/types/database";
+import { getDemoLeadDetailPayload } from "@/lib/demo/demo-data";
+import { isDemoModeEnabledForRequestCookie } from "@/lib/demo/demo-mode";
 
 async function resolveLeadWithAccess(id: string) {
   const auth = await getAuthenticatedContext();
@@ -28,11 +30,26 @@ async function resolveLeadWithAccess(id: string) {
 }
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const demoMode = isDemoModeEnabledForRequestCookie(request.cookies.get("crm_demo_mode")?.value);
     const { id } = await params;
+
+    if (demoMode) {
+      const auth = await getAuthenticatedContext();
+      if (!auth.user) {
+        return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+      }
+
+      const payload = getDemoLeadDetailPayload(id);
+      if (!payload.lead) {
+        return NextResponse.json({ error: "Lead não encontrado" }, { status: 404 });
+      }
+      return NextResponse.json(payload);
+    }
+
     const { auth, lead, error, status } = await resolveLeadWithAccess(id);
     if (!lead) {
       return NextResponse.json({ error }, { status });
@@ -79,6 +96,14 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const demoMode = isDemoModeEnabledForRequestCookie(request.cookies.get("crm_demo_mode")?.value);
+    if (demoMode) {
+      return NextResponse.json(
+        { error: "Modo Demo ativo: alteracoes estao bloqueadas." },
+        { status: 403 }
+      );
+    }
+
     const { id } = await params;
     const { auth, lead: existingLeadWithAccess, error, status } = await resolveLeadWithAccess(id);
     if (!existingLeadWithAccess) {

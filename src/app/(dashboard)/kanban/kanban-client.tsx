@@ -42,7 +42,7 @@ export default function KanbanClient({
   initialTenantId,
 }: KanbanClientProps) {
   const router = useRouter();
-  const { selectedTenant, loading: tenantLoading } = useTenant();
+  const { selectedTenant, loading: tenantLoading, demoMode } = useTenant();
   const [leads, setLeads] = useState<Lead[]>(initialLeads);
   const [loading, setLoading] = useState(!initialTenantId);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -127,6 +127,7 @@ export default function KanbanClient({
 
   useEffect(() => {
     if (!selectedTenant) return;
+    if (demoMode) return;
 
     const supabase = createClient();
     const channelTopic = `kanban-leads-${selectedTenant.id}-${Math.random().toString(36).slice(2)}`;
@@ -211,7 +212,7 @@ export default function KanbanClient({
       window.clearInterval(syncTimer);
       void supabase.removeChannel(channel);
     };
-  }, [fetchLeads, selectedTenant]);
+  }, [demoMode, fetchLeads, selectedTenant]);
 
   function handleDragStart(event: DragStartEvent) {
     setActiveId(event.active.id as string);
@@ -222,6 +223,11 @@ export default function KanbanClient({
     setActiveId(null);
 
     if (!over) return;
+
+    if (demoMode) {
+      toast.info("Modo Demo ativo: movimentacoes estao bloqueadas.");
+      return;
+    }
 
     const leadId = active.id as string;
     const newStatus = over.id as StatusKanban;
@@ -236,6 +242,14 @@ export default function KanbanClient({
 
   async function confirmMove() {
     if (!pendingMove) return;
+
+    if (demoMode) {
+      toast.info("Modo Demo ativo: alteracoes estao bloqueadas.");
+      setWarningOpen(false);
+      setPendingMove(null);
+      return;
+    }
+
     setSaving(true);
 
     try {
@@ -289,6 +303,11 @@ export default function KanbanClient({
         <p className="text-sm text-muted-foreground sm:text-base">
           Visualize e gerencie o pipeline de {selectedTenant.name}
         </p>
+        {demoMode && (
+          <p className="text-xs font-medium text-amber-600">
+            Modo Demo ativo: painel em somente leitura.
+          </p>
+        )}
       </div>
 
       <ScrollArea className="w-full">

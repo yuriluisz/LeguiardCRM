@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ensureTenantAccess, getAuthenticatedContext } from "@/lib/auth/tenant-access";
+import { getDemoFollowConfig, getDemoLeadsResponse } from "@/lib/demo/demo-data";
+import { isDemoModeEnabledForRequestCookie } from "@/lib/demo/demo-mode";
 
 type LeadRow = Record<string, unknown> & {
   status_kanban?: string | null;
@@ -8,6 +10,7 @@ type LeadRow = Record<string, unknown> & {
 export async function GET(request: NextRequest) {
   try {
     const { supabase, user, isAdmin } = await getAuthenticatedContext();
+    const demoMode = isDemoModeEnabledForRequestCookie(request.cookies.get("crm_demo_mode")?.value);
 
     if (!user) {
       return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
@@ -38,6 +41,23 @@ export async function GET(request: NextRequest) {
     const canAccess = await ensureTenantAccess(user.id, tenantId, isAdmin);
     if (!canAccess) {
       return NextResponse.json({ error: "Sem acesso a este tenant" }, { status: 403 });
+    }
+
+    if (demoMode) {
+      const { data: tenant } = await supabase
+        .from("tenants")
+        .select("name, kanban_config")
+        .eq("id", tenantId)
+        .maybeSingle();
+
+      const payload = getDemoLeadsResponse(searchParams, {
+        tenantId,
+        tenantName: tenant?.name ?? undefined,
+        kanbanColumns: tenant?.kanban_config?.columns,
+        followConfig: getDemoFollowConfig(),
+      });
+
+      return NextResponse.json(payload);
     }
 
     const selectFields = lite

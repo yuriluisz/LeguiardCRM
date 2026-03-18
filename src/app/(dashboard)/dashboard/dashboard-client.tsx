@@ -21,7 +21,7 @@ export default function DashboardClient({
   initialMetrics,
   initialTenantId,
 }: DashboardClientProps) {
-  const { selectedTenant, loading: tenantLoading } = useTenant();
+  const { selectedTenant, loading: tenantLoading, demoMode } = useTenant();
   const isBronzeTenant =
     String(selectedTenant?.plan_level || "").toLowerCase() === "bronze";
 
@@ -64,6 +64,7 @@ export default function DashboardClient({
 
   useEffect(() => {
     if (!selectedTenant) return;
+    if (demoMode) return;
 
     const supabase = createClient();
     const leadsTopic = `dashboard-leads-${selectedTenant.id}-${Math.random()
@@ -118,7 +119,7 @@ export default function DashboardClient({
       void supabase.removeChannel(leadsChannel);
       void supabase.removeChannel(interactionsChannel);
     };
-  }, [fetchMetrics, selectedTenant]);
+  }, [demoMode, fetchMetrics, selectedTenant]);
 
   if (tenantLoading) {
     return <DashboardSkeleton />;
@@ -149,6 +150,11 @@ export default function DashboardClient({
         <p className="text-sm text-muted-foreground sm:text-base">
           Visão geral dos leads de {selectedTenant.name}
         </p>
+        {demoMode && (
+          <p className="text-xs font-medium text-amber-600">
+            Modo Demo ativo: dados ficticios para apresentacao.
+          </p>
+        )}
       </div>
 
       <MetricsCards metrics={metrics} />

@@ -4,11 +4,14 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import type { Tenant } from "@/types/database";
 import { createClient } from "@/lib/supabase/client";
 import { SELECTED_TENANT_COOKIE } from "@/lib/tenants/constants";
+import { isDemoModeEnabledOnClient, setDemoModeInClient } from "@/lib/demo/demo-mode";
 
 interface TenantContextType {
   tenants: Tenant[];
   selectedTenant: Tenant | null;
   setSelectedTenantId: (id: string) => void;
+  demoMode: boolean;
+  setDemoMode: (enabled: boolean) => void;
   userName: string | null;
   userEmail: string;
   isAdmin: boolean;
@@ -19,6 +22,8 @@ const TenantContext = createContext<TenantContextType>({
   tenants: [],
   selectedTenant: null,
   setSelectedTenantId: () => {},
+  demoMode: false,
+  setDemoMode: () => {},
   userName: null,
   userEmail: "",
   isAdmin: false,
@@ -56,6 +61,7 @@ export function TenantProvider({
   const [selectedTenantId, setSelectedTenantIdState] = useState<string | null>(
     initialSelectedTenantId ?? null
   );
+  const [demoMode, setDemoModeState] = useState(false);
   const [userName, setUserName] = useState<string | null>(initialUserName ?? null);
   const [userEmail, setUserEmail] = useState<string>(initialUserEmail ?? "");
   const [isAdmin, setIsAdmin] = useState(Boolean(initialIsAdmin));
@@ -134,6 +140,10 @@ export function TenantProvider({
   }, [fetchTenants, hasInitialData]);
 
   useEffect(() => {
+    setDemoModeState(isDemoModeEnabledOnClient());
+  }, []);
+
+  useEffect(() => {
     if (!selectedTenantId) return;
     localStorage.setItem("selectedTenantId", selectedTenantId);
     setTenantCookie(selectedTenantId);
@@ -141,6 +151,11 @@ export function TenantProvider({
 
   const setSelectedTenantId = (id: string) => {
     setSelectedTenantIdState(id);
+  };
+
+  const setDemoMode = (enabled: boolean) => {
+    setDemoModeState(enabled);
+    setDemoModeInClient(enabled);
   };
 
   const selectedTenant = tenants.find((t) => t.id === selectedTenantId) || null;
@@ -151,6 +166,8 @@ export function TenantProvider({
         tenants,
         selectedTenant,
         setSelectedTenantId,
+        demoMode,
+        setDemoMode,
         userName,
         userEmail,
         isAdmin,

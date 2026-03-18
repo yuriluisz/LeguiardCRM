@@ -1,3 +1,11 @@
+import {
+  getDemoDashboardMetrics,
+  getDemoLeadDetailPayload,
+  getDemoLeadsResponse,
+  getDemoTenantPayload,
+} from "@/lib/demo/demo-data";
+import { isDemoModeEnabledOnClient } from "@/lib/demo/demo-mode";
+
 type GetJsonOptions = {
   cacheMs?: number;
 };
@@ -33,10 +41,50 @@ function pruneResponseCache(now: number) {
   }
 }
 
+function buildDemoPayload(url: string): unknown | null {
+  if (!isDemoModeEnabledOnClient()) {
+    return null;
+  }
+
+  const base = typeof window !== "undefined" ? window.location.origin : "http://localhost";
+  const parsed = new URL(url, base);
+  const path = parsed.pathname;
+
+  if (path === "/api/dashboard") {
+    const tenantId = parsed.searchParams.get("tenant_id") || undefined;
+    return getDemoDashboardMetrics({ tenantId });
+  }
+
+  if (path === "/api/leads") {
+    const tenantId = parsed.searchParams.get("tenant_id") || undefined;
+    return getDemoLeadsResponse(parsed.searchParams, { tenantId });
+  }
+
+  if (path.startsWith("/api/leads/")) {
+    const leadId = path.replace("/api/leads/", "").trim();
+    if (!leadId) {
+      return { lead: null, interactions: [], crmConfig: null, kanbanConfig: null };
+    }
+    return getDemoLeadDetailPayload(leadId);
+  }
+
+  if (path.startsWith("/api/tenants/")) {
+    const tenantId = path.replace("/api/tenants/", "").trim() || "demo-tenant";
+    return getDemoTenantPayload(tenantId);
+  }
+
+  return null;
+}
+
 export async function getJsonWithDedupe<T>(
   url: string,
   options?: GetJsonOptions
 ): Promise<T> {
+  const demoPayload = buildDemoPayload(url);
+  if (demoPayload !== null) {
+    return demoPayload as T;
+  }
+
   const cacheMs = options?.cacheMs ?? 0;
   const now = Date.now();
 

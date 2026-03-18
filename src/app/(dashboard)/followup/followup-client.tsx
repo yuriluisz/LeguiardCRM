@@ -428,7 +428,7 @@ export default function FollowupClient({
   initialFollowConfig,
 }: FollowupClientProps) {
   const router = useRouter();
-  const { selectedTenant, loading: tenantLoading } = useTenant();
+  const { selectedTenant, loading: tenantLoading, demoMode } = useTenant();
   const isBronzeTenant = String(selectedTenant?.plan_level || "").toLowerCase() === "bronze";
 
   const [loading, setLoading] = useState(!initialTenantId);
@@ -565,6 +565,11 @@ export default function FollowupClient({
   }, [initialLeads.length, initialTenantId, loadTenant, selectedTenant]);
 
   function openCreateStage() {
+    if (demoMode) {
+      toast.info("Modo Demo ativo: alteracoes estao bloqueadas.");
+      return;
+    }
+
     setEditingStageUiId(null);
     setDraft({
       label: "",
@@ -577,6 +582,11 @@ export default function FollowupClient({
   }
 
   function openEditStage(col: UiFollowColumn) {
+    if (demoMode) {
+      toast.info("Modo Demo ativo: alteracoes estao bloqueadas.");
+      return;
+    }
+
     setEditingStageUiId(col._uiId);
     setDraft({
       label: col.label,
@@ -589,6 +599,11 @@ export default function FollowupClient({
   }
 
   function upsertStage() {
+    if (demoMode) {
+      toast.info("Modo Demo ativo: alteracoes estao bloqueadas.");
+      return;
+    }
+
     const cleanLabel = draft.label.trim();
     if (!cleanLabel) {
       toast.error("Nome da etapa é obrigatório.");
@@ -658,6 +673,11 @@ export default function FollowupClient({
   }
 
   function removeStage(stage: UiFollowColumn) {
+    if (demoMode) {
+      toast.info("Modo Demo ativo: alteracoes estao bloqueadas.");
+      return;
+    }
+
     const leadsInStage = stageCountMap.get(stage.label) ?? 0;
     if (leadsInStage > 0) {
       toast.error("Não é possível excluir etapa com leads vinculados.");
@@ -692,6 +712,12 @@ export default function FollowupClient({
   }
 
   function onDragEnd(event: DragEndEvent) {
+    if (demoMode) {
+      setActiveId(null);
+      toast.info("Modo Demo ativo: ordenacao bloqueada.");
+      return;
+    }
+
     const { active, over } = event;
     setActiveId(null);
     if (!over || active.id === over.id) return;
@@ -705,6 +731,11 @@ export default function FollowupClient({
   }
 
   function toggleDay(day: number) {
+    if (demoMode) {
+      toast.info("Modo Demo ativo: alteracoes estao bloqueadas.");
+      return;
+    }
+
     setBusinessHours((prev) => {
       const exists = prev.days.includes(day);
       const nextDays = exists
@@ -719,6 +750,10 @@ export default function FollowupClient({
 
   async function saveConfig() {
     if (!selectedTenant) return;
+    if (demoMode) {
+      toast.info("Modo Demo ativo: alteracoes estao bloqueadas.");
+      return;
+    }
 
     if (columns.length < 2) {
       toast.error("Você precisa manter no mínimo 2 etapas para salvar.");
@@ -804,6 +839,11 @@ export default function FollowupClient({
           <p className="text-xs text-muted-foreground sm:text-sm">
             Pipeline de follow-up de {selectedTenant.name}
           </p>
+          {demoMode && (
+            <p className="text-xs font-medium text-amber-600">
+              Modo Demo ativo: configuracoes em somente leitura.
+            </p>
+          )}
         </div>
 
         <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
@@ -815,15 +855,16 @@ export default function FollowupClient({
               id="follow-status"
               checked={followStatus}
               onCheckedChange={setFollowStatus}
+              disabled={demoMode}
             />
           </div>
 
-          <Button variant="outline" onClick={() => setSheetOpen(true)} className="flex-1 sm:flex-none">
+          <Button variant="outline" onClick={() => setSheetOpen(true)} className="flex-1 sm:flex-none" disabled={demoMode}>
             <Settings2 className="mr-2 h-4 w-4" />
             Configuração geral
           </Button>
 
-          <Button onClick={saveConfig} disabled={saving} className="flex-1 sm:flex-none">
+          <Button onClick={saveConfig} disabled={saving || demoMode} className="flex-1 sm:flex-none">
             {saving ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
@@ -861,6 +902,7 @@ export default function FollowupClient({
               <button
                 type="button"
                 onClick={openCreateStage}
+                disabled={demoMode}
                 className="flex h-[236px] w-[85vw] max-w-72 shrink-0 items-center justify-center rounded-xl border border-dashed bg-muted/20 text-sm font-medium text-muted-foreground transition-colors hover:border-primary/60 hover:text-foreground sm:w-72"
               >
                 <Plus className="mr-2 h-4 w-4" />
