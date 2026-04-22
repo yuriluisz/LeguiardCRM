@@ -1,40 +1,27 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { getAuthenticatedContext } from "@/lib/auth/tenant-access";
 
 export async function GET() {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const { supabase, user, isAdmin, tenantIdsFromClaim } = await getAuthenticatedContext();
 
     if (!user) {
       return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
     }
 
-    // Verificar se é admin
-    const { data: crmUser } = await supabase
-      .from("crm_users")
-      .select("is_admin")
-      .eq("id", user.id)
-      .single();
-
-    if (!crmUser) {
-      return NextResponse.json({ error: "Usuário não encontrado" }, { status: 404 });
-    }
-
-    let tenants;
-
-    if (crmUser.is_admin) {
+    if (isAdmin) {
       const { data, error } = await supabase
         .from("tenants")
         .select("*")
         .order("name");
 
       if (error) throw error;
-      tenants = data;
-    } else {
-      // Buscar tenants vinculados ao usuário
+
+      return NextResponse.json(data || []);
+    }
+
+    let tenantIds = tenantIdsFromClaim;
+    if (tenantIds === null) {
       const { data: userTenants, error: utError } = await supabase
         .from("crm_user_tenants")
         .select("tenant_id")
@@ -42,22 +29,22 @@ export async function GET() {
 
       if (utError) throw utError;
 
-      if (userTenants && userTenants.length > 0) {
-        const tenantIds = userTenants.map((ut) => ut.tenant_id);
-        const { data, error } = await supabase
-          .from("tenants")
-          .select("*")
-          .in("id", tenantIds)
-          .order("name");
-
-        if (error) throw error;
-        tenants = data;
-      } else {
-        tenants = [];
-      }
+      tenantIds = (userTenants || []).map((ut: { tenant_id: string }) => ut.tenant_id);
     }
 
-    return NextResponse.json(tenants);
+    if (!tenantIds || tenantIds.length === 0) {
+      return NextResponse.json([]);
+    }
+
+    const { data, error } = await supabase
+      .from("tenants")
+      .select("*")
+      .in("id", tenantIds)
+      .order("name");
+
+    if (error) throw error;
+
+    return NextResponse.json(data || []);
   } catch (error) {
     console.error("Erro ao buscar tenants:", error);
     return NextResponse.json(

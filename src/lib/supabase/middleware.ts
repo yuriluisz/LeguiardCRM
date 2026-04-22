@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { getActiveFromJwt } from "@/lib/auth/jwt-claims";
 
 const CRM_ACTIVE_COOKIE = "crm_user_active";
 const CRM_ACTIVE_COOKIE_TTL_SECONDS = 60 * 5;
@@ -153,12 +154,28 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (user && !isPublicPath) {
-    if (hasActiveCrmUserCookie(request, user.id)) {
+    const activeFromJwt = getActiveFromJwt(user);
+
+    if (activeFromJwt === false) {
+      await supabase.auth.signOut();
+      clearActiveCrmUserCookie(supabaseResponse);
+      const url = request.nextUrl.clone();
+      url.pathname = "/login";
+      url.search = "";
+      url.searchParams.set("error", "inactive");
+      return NextResponse.redirect(url);
+    }
+
+    if (activeFromJwt === true) {
+      if (!hasActiveCrmUserCookie(request, user.id)) {
+        setActiveCrmUserCookie(supabaseResponse, user.id);
+      }
+    } else if (hasActiveCrmUserCookie(request, user.id)) {
       if (process.env.NODE_ENV !== "production") {
         console.debug("[middleware] crm_users cache hit", { userId: user.id });
       }
     } else {
-    // Verificar se o usuário está ativo na tabela crm_users
+      // Verificar se o usuário está ativo na tabela crm_users
       const { data: crmUser, error: crmUserError } = await supabase
         .from("crm_users")
         .select("active")

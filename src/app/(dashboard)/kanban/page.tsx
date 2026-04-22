@@ -14,7 +14,7 @@ export default async function KanbanPage() {
     return <KanbanClient initialLeads={[]} initialTenantId={null} />;
   }
 
-  const initialLeads = await getTenantLeadsLiteCached(selectedTenantId, 120);
+  const initialLeads = await getTenantLeadsLiteCached(selectedTenantId, 300);
 
   return (
     <KanbanClient

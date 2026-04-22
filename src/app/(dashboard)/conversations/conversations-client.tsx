@@ -267,9 +267,6 @@ export default function ConversationsClient({
     if (hasMatchingTenantSeed) {
       setLeads(initialLeads);
       setLoading(false);
-      if (initialLeads.length < 300) {
-        void fetchLeads({ showLoading: false });
-      }
 
       if (leadParam && !initialLeadLoaded.current) {
         initialLeadLoaded.current = true;
@@ -328,6 +325,7 @@ export default function ConversationsClient({
           event: "*",
           schema: "public",
           table: "leads",
+          filter: `tenant_id=eq.${selectedTenant.id}`,
         },
         (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
           const payloadTenantId =
@@ -424,6 +422,7 @@ export default function ConversationsClient({
           event: "*",
           schema: "public",
           table: "interactions",
+          filter: `lead_id=eq.${selectedLead.id}`,
         },
         (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
           const payloadLeadId =

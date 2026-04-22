@@ -7,7 +7,7 @@ type LeadRow = Record<string, unknown> & {
 
 export async function GET(request: NextRequest) {
   try {
-    const { supabase, user, isAdmin } = await getAuthenticatedContext();
+    const { supabase, user, isAdmin, tenantIdsFromClaim } = await getAuthenticatedContext();
 
     if (!user) {
       return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
@@ -35,7 +35,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const canAccess = await ensureTenantAccess(user.id, tenantId, isAdmin);
+    const canAccess = await ensureTenantAccess(user.id, tenantId, isAdmin, {
+      supabase,
+      tenantIdsFromClaim,
+    });
     if (!canAccess) {
       return NextResponse.json({ error: "Sem acesso a este tenant" }, { status: 403 });
     }
@@ -44,9 +47,12 @@ export async function GET(request: NextRequest) {
       ? "id,tenant_id,phone,name,email,status_kanban,temperature,ai_active,not_a_lead,last_interaction,created_at,ai_run_count,conv_id,follow_stage"
       : "*";
 
-    let query = supabase
-      .from("leads")
-      .select(selectFields, { count: "exact" })
+    const leadsQuery = supabase.from("leads");
+    let query = lite
+      ? leadsQuery.select(selectFields)
+      : leadsQuery.select(selectFields, { count: "exact" });
+
+    query = query
       .eq("tenant_id", tenantId)
       .order("last_interaction", { ascending: false, nullsFirst: false });
 
@@ -83,12 +89,14 @@ export async function GET(request: NextRequest) {
       status_kanban: lead.status_kanban ? String(lead.status_kanban).toLowerCase() : lead.status_kanban,
     }));
 
+    const total = typeof count === "number" ? count : normalized.length;
+
     return NextResponse.json({
       leads: normalized,
-      total: count,
+      total,
       page,
       limit,
-      totalPages: Math.ceil((count || 0) / limit),
+      totalPages: typeof count === "number" ? Math.ceil(total / limit) : 1,
     });
   } catch (error) {
     console.error("Erro ao buscar leads:", error);

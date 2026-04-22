@@ -1,6 +1,11 @@
 import { cache } from "react";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
+import {
+  getIsAdminFromJwt,
+  getTenantIdsFromJwt,
+  getUserNameFromJwt,
+} from "@/lib/auth/jwt-claims";
 import type { Tenant } from "@/types/database";
 import { SELECTED_TENANT_COOKIE } from "@/lib/tenants/constants";
 
@@ -53,13 +58,26 @@ export const getAccessibleTenantsServer = cache(async (): Promise<AccessibleTena
     };
   }
 
-  const { data: crmUser } = await supabase
-    .from("crm_users")
-    .select("name, is_admin")
-    .eq("id", user.id)
-    .single();
+  const isAdminFromJwt = getIsAdminFromJwt(user);
+  const tenantIdsFromClaim = getTenantIdsFromJwt(user);
+  let userName = getUserNameFromJwt(user);
+  let isAdmin = false;
 
-  const isAdmin = Boolean(crmUser?.is_admin);
+  if (isAdminFromJwt !== null) {
+    isAdmin = isAdminFromJwt;
+  } else {
+    const { data: crmUser } = await supabase
+      .from("crm_users")
+      .select("name, is_admin")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (crmUser?.name) {
+      userName = crmUser.name;
+    }
+
+    isAdmin = Boolean(crmUser?.is_admin);
+  }
 
   let tenants: Tenant[] = [];
   if (isAdmin) {
@@ -68,6 +86,15 @@ export const getAccessibleTenantsServer = cache(async (): Promise<AccessibleTena
       .select(TENANTS_BASE_SELECT)
       .order("name");
     tenants = ((data as TenantBaseRow[] | null) || []).map(normalizeTenant);
+  } else if (tenantIdsFromClaim !== null) {
+    if (tenantIdsFromClaim.length > 0) {
+      const { data } = await supabase
+        .from("tenants")
+        .select(TENANTS_BASE_SELECT)
+        .in("id", tenantIdsFromClaim)
+        .order("name");
+      tenants = ((data as TenantBaseRow[] | null) || []).map(normalizeTenant);
+    }
   } else {
     const { data: userTenants } = await supabase
       .from("crm_user_tenants")
@@ -95,7 +122,7 @@ export const getAccessibleTenantsServer = cache(async (): Promise<AccessibleTena
   return {
     supabase,
     user: { id: user.id, email: user.email },
-    userName: crmUser?.name || null,
+    userName,
     userEmail: user.email || "",
     isAdmin,
     tenants,

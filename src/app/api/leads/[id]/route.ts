@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { ensureTenantAccess, getAuthenticatedContext } from "@/lib/auth/tenant-access";
 import { DEFAULT_KANBAN_COLUMNS } from "@/types/database";
 
+const LEAD_SELECT_FIELDS =
+  "id,tenant_id,phone,name,email,status_kanban,temperature,ai_active,not_a_lead,last_interaction,created_at,ai_run_count,conv_id,follow_stage,custom_data,ai_summary,history_sync_needed";
+
 async function resolveLeadWithAccess(id: string) {
   const auth = await getAuthenticatedContext();
 
@@ -11,7 +14,7 @@ async function resolveLeadWithAccess(id: string) {
 
   const { data: lead, error: leadError } = await auth.supabase
     .from("leads")
-    .select("*")
+    .select(LEAD_SELECT_FIELDS)
     .eq("id", id)
     .single();
 
@@ -19,7 +22,10 @@ async function resolveLeadWithAccess(id: string) {
     return { auth, lead: null, error: "Lead não encontrado", status: 404 };
   }
 
-  const canAccess = await ensureTenantAccess(auth.user.id, lead.tenant_id, auth.isAdmin);
+  const canAccess = await ensureTenantAccess(auth.user.id, lead.tenant_id, auth.isAdmin, {
+    supabase: auth.supabase,
+    tenantIdsFromClaim: auth.tenantIdsFromClaim,
+  });
   if (!canAccess) {
     return { auth, lead: null, error: "Sem acesso a este lead", status: 403 };
   }
@@ -46,7 +52,7 @@ export async function GET(
     // Buscar interações
     const { data: interactions, error: interError } = await auth.supabase
       .from("interactions")
-      .select("*")
+      .select("id,lead_id,role,content,created_at")
       .eq("lead_id", id)
       .order("created_at", { ascending: true });
 

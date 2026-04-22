@@ -1,0 +1,29 @@
+{
+  "generatedAt": "2026-04-22T17:16:25.445Z",
+  "scannedRoot": "src",
+  "totalFilesScanned": 65,
+  "totalFilesWithRealtimeMarkers": 0,
+  "totalMatches": 0,
+  "flowPages": [
+    {
+      "flow": "dashboard",
+      "pageFile": "src/app/page.tsx",
+      "hitCount": 0,
+      "hits": []
+    },
+    {
+      "flow": "conversations",
+      "pageFile": "src/app/conversations/page.tsx",
+      "hitCount": 0,
+      "hits": []
+    },
+    {
+      "flow": "kanban",
+      "pageFile": "src/app/leads/page.tsx",
+      "hitCount": 0,
+      "hits": []
+    }
+  ],
+  "matches": [],
+  "conclusion": "No Realtime subscription markers were found in frontend/server code."
+}

@@ -1,4 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
+import { getIsAdminFromJwt, getTenantIdsFromJwt } from "@/lib/auth/jwt-claims";
+
+type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
+
+type EnsureTenantAccessOptions = {
+  supabase?: SupabaseServerClient;
+  tenantIdsFromClaim?: readonly string[] | null;
+};
 
 export async function getAuthenticatedContext() {
   const supabase = await createClient();
@@ -7,7 +15,19 @@ export async function getAuthenticatedContext() {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return { supabase, user: null, isAdmin: false };
+    return { supabase, user: null, isAdmin: false, tenantIdsFromClaim: null };
+  }
+
+  const isAdminFromJwt = getIsAdminFromJwt(user);
+  const tenantIdsFromClaim = getTenantIdsFromJwt(user);
+
+  if (isAdminFromJwt !== null) {
+    return {
+      supabase,
+      user,
+      isAdmin: isAdminFromJwt,
+      tenantIdsFromClaim,
+    };
   }
 
   const { data: crmUser, error } = await supabase
@@ -24,19 +44,25 @@ export async function getAuthenticatedContext() {
     supabase,
     user,
     isAdmin: Boolean(crmUser?.is_admin),
+    tenantIdsFromClaim,
   };
 }
 
 export async function ensureTenantAccess(
   userId: string,
   tenantId: string,
-  isAdmin: boolean
+  isAdmin: boolean,
+  options?: EnsureTenantAccessOptions
 ) {
   if (isAdmin) {
     return true;
   }
 
-  const supabase = await createClient();
+  if (Array.isArray(options?.tenantIdsFromClaim)) {
+    return options.tenantIdsFromClaim.includes(tenantId);
+  }
+
+  const supabase = options?.supabase || (await createClient());
   const { data, error } = await supabase
     .from("crm_user_tenants")
     .select("id")

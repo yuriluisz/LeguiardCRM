@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ensureTenantAccess, getAuthenticatedContext } from "@/lib/auth/tenant-access";
-import { getDashboardMetrics } from "@/lib/dashboard/get-dashboard-metrics";
+import { getDashboardMetricsCached } from "@/lib/dashboard/get-dashboard-metrics";
 
 export async function GET(request: NextRequest) {
   try {
-    const { supabase, user, isAdmin } = await getAuthenticatedContext();
+    const { supabase, user, isAdmin, tenantIdsFromClaim } = await getAuthenticatedContext();
 
     if (!user) {
       return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
@@ -20,12 +20,15 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const canAccess = await ensureTenantAccess(user.id, tenantId, isAdmin);
+    const canAccess = await ensureTenantAccess(user.id, tenantId, isAdmin, {
+      supabase,
+      tenantIdsFromClaim,
+    });
     if (!canAccess) {
       return NextResponse.json({ error: "Sem acesso a este tenant" }, { status: 403 });
     }
 
-    const metrics = await getDashboardMetrics(supabase, tenantId);
+    const metrics = await getDashboardMetricsCached(tenantId);
 
     return NextResponse.json(metrics);
   } catch (error) {

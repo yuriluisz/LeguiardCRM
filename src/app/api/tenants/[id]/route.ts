@@ -57,7 +57,10 @@ export async function GET(
       return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
     }
 
-    const canAccess = await ensureTenantAccess(auth.user.id, id, auth.isAdmin);
+    const canAccess = await ensureTenantAccess(auth.user.id, id, auth.isAdmin, {
+      supabase: auth.supabase,
+      tenantIdsFromClaim: auth.tenantIdsFromClaim,
+    });
     if (!canAccess) {
       return NextResponse.json({ error: "Sem acesso a este tenant" }, { status: 403 });
     }
@@ -105,7 +108,10 @@ export async function PATCH(
       return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
     }
 
-    const canAccess = await ensureTenantAccess(auth.user.id, id, auth.isAdmin);
+    const canAccess = await ensureTenantAccess(auth.user.id, id, auth.isAdmin, {
+      supabase: auth.supabase,
+      tenantIdsFromClaim: auth.tenantIdsFromClaim,
+    });
     if (!canAccess) {
       return NextResponse.json({ error: "Sem acesso a este tenant" }, { status: 403 });
     }

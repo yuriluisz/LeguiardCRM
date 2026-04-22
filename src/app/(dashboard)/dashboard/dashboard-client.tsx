@@ -10,6 +10,7 @@ import { FollowupDistributionChart } from "@/components/dashboard/followup-distr
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { createClient } from "@/lib/supabase/client";
+import { createLeaderTabCoordinator } from "@/lib/realtime/leader-tab";
 import { getJsonWithDedupe } from "@/lib/utils/client-get-cache";
 
 type DashboardClientProps = {
@@ -69,9 +70,7 @@ export default function DashboardClient({
     const leadsTopic = `dashboard-leads-${selectedTenant.id}-${Math.random()
       .toString(36)
       .slice(2)}`;
-    const interactionsTopic = `dashboard-interactions-${selectedTenant.id}-${Math.random()
-      .toString(36)
-      .slice(2)}`;
+    const pollCoordinator = createLeaderTabCoordinator(`dashboard-metrics:${selectedTenant.id}`);
 
     const scheduleRefresh = () => {
       if (refreshTimerRef.current) {
@@ -97,26 +96,20 @@ export default function DashboardClient({
       )
       .subscribe();
 
-    const interactionsChannel = supabase
-      .channel(interactionsTopic)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "interactions",
-        },
-        scheduleRefresh
-      )
-      .subscribe();
+    const fallbackTimer = window.setInterval(() => {
+      if (!document.hidden && pollCoordinator.shouldRun()) {
+        void fetchMetrics(true);
+      }
+    }, 60_000);
 
     return () => {
       if (refreshTimerRef.current) {
         window.clearTimeout(refreshTimerRef.current);
         refreshTimerRef.current = null;
       }
+      pollCoordinator.release();
+      window.clearInterval(fallbackTimer);
       void supabase.removeChannel(leadsChannel);
-      void supabase.removeChannel(interactionsChannel);
     };
   }, [fetchMetrics, selectedTenant]);
 

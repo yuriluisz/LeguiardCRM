@@ -116,9 +116,6 @@ export default function KanbanClient({
     ) {
       setLeads(initialLeads);
       setLoading(false);
-      if (initialLeads.length < 300) {
-        void fetchLeads({ showLoading: false });
-      }
       return;
     }
 
@@ -145,6 +142,7 @@ export default function KanbanClient({
           event: "*",
           schema: "public",
           table: "leads",
+          filter: `tenant_id=eq.${selectedTenant.id}`,
         },
         (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
           const payloadTenantId =

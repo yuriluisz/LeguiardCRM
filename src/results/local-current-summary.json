@@ -1,0 +1,776 @@
+{
+  "generatedAt": "2026-04-22T17:30:00.174Z",
+  "sourceFile": "C:\\Users\\Yuri\\Documents\\GitHub\\tenantadm\\perf-ab\\output\\local-current-2026-04-22T17-16-20-892Z.json",
+  "flowCount": 3,
+  "flows": [
+    {
+      "flow": "login-dashboard",
+      "totalMs": 21170,
+      "documentTTFBMs": 1656.28,
+      "totalRequests": 52,
+      "dataRequests": 10,
+      "peakConcurrency": 16,
+      "largestPayload": {
+        "endpoint": "http://localhost:3000/_next/static/chunks/node_modules_recharts_es6_f1bf2174._.js",
+        "url": "http://localhost:3000/_next/static/chunks/node_modules_recharts_es6_f1bf2174._.js",
+        "method": "GET",
+        "bytes": 1138082,
+        "bytesHuman": "1.09 MB"
+      },
+      "authCalls": {
+        "token": 1,
+        "user": 0,
+        "session": 0,
+        "total": 1
+      },
+      "relevantDataRequests": [
+        {
+          "startedOffsetMs": 0,
+          "method": "GET",
+          "url": "http://localhost:3000/login",
+          "status": 200,
+          "durationMs": 1657.75,
+          "ttfbMs": 1656.28,
+          "resourceType": "document",
+          "parallelMode": "sequential",
+          "parallelAtStart": 0
+        },
+        {
+          "startedOffsetMs": 10669.79,
+          "method": "POST",
+          "url": "https://aspx-supabase.9e4dsr.easypanel.host/auth/v1/token?grant_type=password",
+          "status": 200,
+          "durationMs": 2197.96,
+          "ttfbMs": 2197.84,
+          "resourceType": "fetch",
+          "parallelMode": "sequential",
+          "parallelAtStart": 0
+        },
+        {
+          "startedOffsetMs": 14715.23,
+          "method": "GET",
+          "url": "https://aspx-supabase.9e4dsr.easypanel.host/rest/v1/tenants?select=id%2Cname&order=name.asc",
+          "status": 200,
+          "durationMs": 699.52,
+          "ttfbMs": 698.89,
+          "resourceType": "fetch",
+          "parallelMode": "sequential",
+          "parallelAtStart": 0
+        },
+        {
+          "startedOffsetMs": 14829.73,
+          "method": "GET",
+          "url": "https://aspx-supabase.9e4dsr.easypanel.host/rest/v1/leads?select=id%2Ccreated_at%2Clast_interaction%2Cai_active%2Ctenant_id",
+          "status": 200,
+          "durationMs": 3081.02,
+          "ttfbMs": 3080.73,
+          "resourceType": "fetch",
+          "parallelMode": "parallel",
+          "parallelAtStart": 1
+        },
+        {
+          "startedOffsetMs": 15010.2,
+          "method": "GET",
+          "url": "https://aspx-supabase.9e4dsr.easypanel.host/rest/v1/interactions?select=id%2Ccreated_at%2Clead_id",
+          "status": 200,
+          "durationMs": 2674.55,
+          "ttfbMs": 2674.74,
+          "resourceType": "fetch",
+          "parallelMode": "parallel",
+          "parallelAtStart": 2
+        },
+        {
+          "startedOffsetMs": 15010.53,
+          "method": "GET",
+          "url": "https://aspx-supabase.9e4dsr.easypanel.host/rest/v1/tenants?select=id%2Cname&order=name.asc",
+          "status": 200,
+          "durationMs": 1160.22,
+          "ttfbMs": 1160.24,
+          "resourceType": "fetch",
+          "parallelMode": "parallel",
+          "parallelAtStart": 3
+        },
+        {
+          "startedOffsetMs": 15031.33,
+          "method": "GET",
+          "url": "https://aspx-supabase.9e4dsr.easypanel.host/rest/v1/leads?select=id%2Ccreated_at%2Clast_interaction%2Cai_active%2Ctenant_id",
+          "status": 200,
+          "durationMs": 4113.42,
+          "ttfbMs": 4112.91,
+          "resourceType": "fetch",
+          "parallelMode": "parallel",
+          "parallelAtStart": 4
+        },
+        {
+          "startedOffsetMs": 15034.19,
+          "method": "GET",
+          "url": "https://aspx-supabase.9e4dsr.easypanel.host/rest/v1/interactions?select=id%2Ccreated_at%2Clead_id",
+          "status": 200,
+          "durationMs": 3376.56,
+          "ttfbMs": 3377.34,
+          "resourceType": "fetch",
+          "parallelMode": "parallel",
+          "parallelAtStart": 5
+        }
+      ]
+    },
+    {
+      "flow": "conversations",
+      "totalMs": 11509,
+      "documentTTFBMs": 1684.41,
+      "totalRequests": 64,
+      "dataRequests": 9,
+      "peakConcurrency": 10,
+      "largestPayload": {
+        "endpoint": "http://localhost:3000/_next/static/chunks/node_modules_recharts_es6_f1bf2174._.js",
+        "url": "http://localhost:3000/_next/static/chunks/node_modules_recharts_es6_f1bf2174._.js",
+        "method": "GET",
+        "bytes": 1138082,
+        "bytesHuman": "1.09 MB"
+      },
+      "authCalls": {
+        "token": 0,
+        "user": 0,
+        "session": 0,
+        "total": 0
+      },
+      "relevantDataRequests": [
+        {
+          "startedOffsetMs": 0,
+          "method": "GET",
+          "url": "http://localhost:3000/",
+          "status": 200,
+          "durationMs": 1683.73,
+          "ttfbMs": 1684.41,
+          "resourceType": "document",
+          "parallelMode": "sequential",
+          "parallelAtStart": 0
+        },
+        {
+          "startedOffsetMs": 2252.34,
+          "method": "GET",
+          "url": "https://aspx-supabase.9e4dsr.easypanel.host/rest/v1/interactions?select=id%2Ccreated_at%2Clead_id",
+          "status": 200,
+          "durationMs": 1026.39,
+          "ttfbMs": 1027.09,
+          "resourceType": "fetch",
+          "parallelMode": "sequential",
+          "parallelAtStart": 0
+        },
+        {
+          "startedOffsetMs": 2264,
+          "method": "GET",
+          "url": "https://aspx-supabase.9e4dsr.easypanel.host/rest/v1/tenants?select=id%2Cname&order=name.asc",
+          "status": 200,
+          "durationMs": 879.72,
+          "ttfbMs": 878.42,
+          "resourceType": "fetch",
+          "parallelMode": "parallel",
+          "parallelAtStart": 1
+        },
+        {
+          "startedOffsetMs": 2264.56,
+          "method": "GET",
+          "url": "https://aspx-supabase.9e4dsr.easypanel.host/rest/v1/leads?select=id%2Ccreated_at%2Clast_interaction%2Cai_active%2Ctenant_id",
+          "status": 200,
+          "durationMs": 1112.17,
+          "ttfbMs": 1112.1,
+          "resourceType": "fetch",
+          "parallelMode": "parallel",
+          "parallelAtStart": 2
+        },
+        {
+          "startedOffsetMs": 5401.79,
+          "method": "GET",
+          "url": "http://localhost:3000/conversations?lead=10a23880-b555-4c84-83f0-0f201acc7b9d",
+          "status": 200,
+          "durationMs": 1594.94,
+          "ttfbMs": 1595.64,
+          "resourceType": "document",
+          "parallelMode": "sequential",
+          "parallelAtStart": 0
+        },
+        {
+          "startedOffsetMs": 7453.06,
+          "method": "GET",
+          "url": "https://aspx-supabase.9e4dsr.easypanel.host/rest/v1/tenants?select=*&order=name.asc",
+          "status": 200,
+          "durationMs": 407.67,
+          "ttfbMs": 407.85,
+          "resourceType": "fetch",
+          "parallelMode": "sequential",
+          "parallelAtStart": 0
+        },
+        {
+          "startedOffsetMs": 7467.61,
+          "method": "GET",
+          "url": "https://aspx-supabase.9e4dsr.easypanel.host/rest/v1/leads?select=*&order=last_interaction.desc",
+          "status": 200,
+          "durationMs": 381.12,
+          "ttfbMs": 381.16,
+          "resourceType": "fetch",
+          "parallelMode": "parallel",
+          "parallelAtStart": 1
+        },
+        {
+          "startedOffsetMs": 8087.51,
+          "method": "GET",
+          "url": "http://localhost:3000/conversations?lead=10a23880-b555-4c84-83f0-0f201acc7b9d&_rsc=19jmf",
+          "status": 200,
+          "durationMs": 364.22,
+          "ttfbMs": 364.63,
+          "resourceType": "fetch",
+          "parallelMode": "sequential",
+          "parallelAtStart": 0
+        },
+        {
+          "startedOffsetMs": 8587.38,
+          "method": "GET",
+          "url": "https://aspx-supabase.9e4dsr.easypanel.host/rest/v1/interactions?select=*&lead_id=eq.10a23880-b555-4c84-83f0-0f201acc7b9d&order=created_at.asc",
+          "status": 200,
+          "durationMs": 892.35,
+          "ttfbMs": 892.58,
+          "resourceType": "fetch",
+          "parallelMode": "sequential",
+          "parallelAtStart": 0
+        }
+      ]
+    },
+    {
+      "flow": "kanban",
+      "totalMs": 7106,
+      "documentTTFBMs": 463.03,
+      "totalRequests": 62,
+      "dataRequests": 7,
+      "peakConcurrency": 10,
+      "largestPayload": {
+        "endpoint": "http://localhost:3000/_next/static/chunks/node_modules_recharts_es6_f1bf2174._.js",
+        "url": "http://localhost:3000/_next/static/chunks/node_modules_recharts_es6_f1bf2174._.js",
+        "method": "GET",
+        "bytes": 1138082,
+        "bytesHuman": "1.09 MB"
+      },
+      "authCalls": {
+        "token": 0,
+        "user": 0,
+        "session": 0,
+        "total": 0
+      },
+      "relevantDataRequests": [
+        {
+          "startedOffsetMs": 0,
+          "method": "GET",
+          "url": "http://localhost:3000/",
+          "status": 200,
+          "durationMs": 463.12,
+          "ttfbMs": 463.03,
+          "resourceType": "document",
+          "parallelMode": "sequential",
+          "parallelAtStart": 0
+        },
+        {
+          "startedOffsetMs": 917.64,
+          "method": "GET",
+          "url": "https://aspx-supabase.9e4dsr.easypanel.host/rest/v1/tenants?select=id%2Cname&order=name.asc",
+          "status": 200,
+          "durationMs": 240.47,
+          "ttfbMs": 240.1,
+          "resourceType": "fetch",
+          "parallelMode": "sequential",
+          "parallelAtStart": 0
+        },
+        {
+          "startedOffsetMs": 917.79,
+          "method": "GET",
+          "url": "https://aspx-supabase.9e4dsr.easypanel.host/rest/v1/leads?select=id%2Ccreated_at%2Clast_interaction%2Cai_active%2Ctenant_id",
+          "status": 200,
+          "durationMs": 468.32,
+          "ttfbMs": 468.75,
+          "resourceType": "fetch",
+          "parallelMode": "parallel",
+          "parallelAtStart": 1
+        },
+        {
+          "startedOffsetMs": 917.93,
+          "method": "GET",
+          "url": "https://aspx-supabase.9e4dsr.easypanel.host/rest/v1/interactions?select=id%2Ccreated_at%2Clead_id",
+          "status": 200,
+          "durationMs": 397.19,
+          "ttfbMs": 397.21,
+          "resourceType": "fetch",
+          "parallelMode": "parallel",
+          "parallelAtStart": 2
+        },
+        {
+          "startedOffsetMs": 4160.15,
+          "method": "GET",
+          "url": "https://aspx-supabase.9e4dsr.easypanel.host/rest/v1/tenants?select=id%2Cname&order=name.asc",
+          "status": 200,
+          "durationMs": 929.96,
+          "ttfbMs": 930.64,
+          "resourceType": "fetch",
+          "parallelMode": "sequential",
+          "parallelAtStart": 0
+        },
+        {
+          "startedOffsetMs": 4388.25,
+          "method": "GET",
+          "url": "https://aspx-supabase.9e4dsr.easypanel.host/rest/v1/leads?select=*&tenant_id=eq.80dfed99-591f-4bae-9576-7a15559880a1&order=last_interaction.desc",
+          "status": 200,
+          "durationMs": 641.87,
+          "ttfbMs": 641.25,
+          "resourceType": "fetch",
+          "parallelMode": "parallel",
+          "parallelAtStart": 1
+        }
+      ]
+    }
+  ],
+  "endpointStatsByDuration": {
+    "app": [
+      {
+        "endpoint": "http://localhost:3000/",
+        "source": "app",
+        "calls": 4,
+        "totalDurationMs": 3555.05,
+        "maxDurationMs": 1683.73,
+        "totalPayloadBytes": 93529,
+        "meanDurationMs": 888.76
+      },
+      {
+        "endpoint": "http://localhost:3000/conversations",
+        "source": "app",
+        "calls": 2,
+        "totalDurationMs": 1959.16,
+        "maxDurationMs": 1594.94,
+        "totalPayloadBytes": 47709,
+        "meanDurationMs": 979.58
+      },
+      {
+        "endpoint": "http://localhost:3000/login",
+        "source": "app",
+        "calls": 1,
+        "totalDurationMs": 1657.75,
+        "maxDurationMs": 1657.75,
+        "totalPayloadBytes": 33547,
+        "meanDurationMs": 1657.75
+      },
+      {
+        "endpoint": "http://localhost:3000/leads",
+        "source": "app",
+        "calls": 1,
+        "totalDurationMs": 475.63,
+        "maxDurationMs": 475.63,
+        "totalPayloadBytes": 46808,
+        "meanDurationMs": 475.63
+      },
+      {
+        "endpoint": "http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-dom_1e674e59._.js",
+        "source": "app",
+        "calls": 5,
+        "totalDurationMs": 462.93,
+        "maxDurationMs": 239.21,
+        "totalPayloadBytes": 5239330,
+        "meanDurationMs": 92.59
+      },
+      {
+        "endpoint": "http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_1dd7fb59.js",
+        "source": "app",
+        "calls": 5,
+        "totalDurationMs": 417.42,
+        "maxDurationMs": 196.93,
+        "totalPayloadBytes": 4080280,
+        "meanDurationMs": 83.48
+      },
+      {
+        "endpoint": "http://localhost:3000/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_c8c997ce._.js",
+        "source": "app",
+        "calls": 5,
+        "totalDurationMs": 316.68,
+        "maxDurationMs": 118.27,
+        "totalPayloadBytes": 77165,
+        "meanDurationMs": 63.34
+      },
+      {
+        "endpoint": "http://localhost:3000/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_c7192189._.js",
+        "source": "app",
+        "calls": 5,
+        "totalDurationMs": 313.01,
+        "maxDurationMs": 117.27,
+        "totalPayloadBytes": 1440,
+        "meanDurationMs": 62.6
+      },
+      {
+        "endpoint": "http://localhost:3000/_next/static/chunks/node_modules_a133b0b7._.js",
+        "source": "app",
+        "calls": 5,
+        "totalDurationMs": 281.15,
+        "maxDurationMs": 81.16,
+        "totalPayloadBytes": 4565170,
+        "meanDurationMs": 56.23
+      },
+      {
+        "endpoint": "http://localhost:3000/_next/image",
+        "source": "app",
+        "calls": 6,
+        "totalDurationMs": 278.16,
+        "maxDurationMs": 224.18,
+        "totalPayloadBytes": 3272,
+        "meanDurationMs": 46.36
+      },
+      {
+        "endpoint": "http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_17643121._.js",
+        "source": "app",
+        "calls": 5,
+        "totalDurationMs": 221.41,
+        "maxDurationMs": 63.12,
+        "totalPayloadBytes": 3105215,
+        "meanDurationMs": 44.28
+      },
+      {
+        "endpoint": "http://localhost:3000/_next/static/chunks/node_modules_recharts_es6_f1bf2174._.js",
+        "source": "app",
+        "calls": 4,
+        "totalDurationMs": 209.48,
+        "maxDurationMs": 74.1,
+        "totalPayloadBytes": 4552328,
+        "meanDurationMs": 52.37
+      },
+      {
+        "endpoint": "http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-server-dom-turbopack_9212ccad._.js",
+        "source": "app",
+        "calls": 5,
+        "totalDurationMs": 209.43,
+        "maxDurationMs": 144.14,
+        "totalPayloadBytes": 855230,
+        "meanDurationMs": 41.89
+      },
+      {
+        "endpoint": "http://localhost:3000/_next/static/chunks/%5Broot-of-the-server%5D__0f0ba101._.css",
+        "source": "app",
+        "calls": 5,
+        "totalDurationMs": 201.99,
+        "maxDurationMs": 175.57,
+        "totalPayloadBytes": 505640,
+        "meanDurationMs": 40.4
+      },
+      {
+        "endpoint": "http://localhost:3000/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_956a0d3a._.js",
+        "source": "app",
+        "calls": 5,
+        "totalDurationMs": 193.51,
+        "maxDurationMs": 173.65,
+        "totalPayloadBytes": 3355,
+        "meanDurationMs": 38.7
+      },
+      {
+        "endpoint": "http://localhost:3000/_next/static/chunks/node_modules_b8980f94._.js",
+        "source": "app",
+        "calls": 4,
+        "totalDurationMs": 185.51,
+        "maxDurationMs": 64,
+        "totalPayloadBytes": 3305208,
+        "meanDurationMs": 46.38
+      },
+      {
+        "endpoint": "http://localhost:3000/_next/static/chunks/node_modules_%40supabase_49da7d95._.js",
+        "source": "app",
+        "calls": 4,
+        "totalDurationMs": 146.92,
+        "maxDurationMs": 64.79,
+        "totalPayloadBytes": 1430028,
+        "meanDurationMs": 36.73
+      },
+      {
+        "endpoint": "http://localhost:3000/_next/static/chunks/node_modules_%40supabase_auth-js_dist_module_e6c70351._.js",
+        "source": "app",
+        "calls": 4,
+        "totalDurationMs": 143.07,
+        "maxDurationMs": 61.51,
+        "totalPayloadBytes": 1311216,
+        "meanDurationMs": 35.77
+      },
+      {
+        "endpoint": "http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js",
+        "source": "app",
+        "calls": 5,
+        "totalDurationMs": 133.17,
+        "maxDurationMs": 58.04,
+        "totalPayloadBytes": 1041915,
+        "meanDurationMs": 26.63
+      },
+      {
+        "endpoint": "http://localhost:3000/_next/static/chunks/node_modules_%40reduxjs_toolkit_b00a18bb._.js",
+        "source": "app",
+        "calls": 4,
+        "totalDurationMs": 127.68,
+        "maxDurationMs": 59.84,
+        "totalPayloadBytes": 624552,
+        "meanDurationMs": 31.92
+      },
+      {
+        "endpoint": "http://localhost:3000/_next/static/chunks/node_modules_%40radix-ui_2cf96ec1._.js",
+        "source": "app",
+        "calls": 4,
+        "totalDurationMs": 126.59,
+        "maxDurationMs": 62.64,
+        "totalPayloadBytes": 537704,
+        "meanDurationMs": 31.65
+      },
+      {
+        "endpoint": "http://localhost:3000/_next/static/chunks/node_modules_3348e8d0._.js",
+        "source": "app",
+        "calls": 1,
+        "totalDurationMs": 113.38,
+        "maxDurationMs": 113.38,
+        "totalPayloadBytes": 774151,
+        "meanDurationMs": 113.38
+      },
+      {
+        "endpoint": "http://localhost:3000/_next/static/chunks/src_app_page_tsx_605100b2._.js",
+        "source": "app",
+        "calls": 4,
+        "totalDurationMs": 92.62,
+        "maxDurationMs": 53.83,
+        "totalPayloadBytes": 2396,
+        "meanDurationMs": 23.16
+      },
+      {
+        "endpoint": "http://localhost:3000/_next/static/chunks/node_modules_28b0f11f._.js",
+        "source": "app",
+        "calls": 1,
+        "totalDurationMs": 90.45,
+        "maxDurationMs": 90.45,
+        "totalPayloadBytes": 1137545,
+        "meanDurationMs": 90.45
+      },
+      {
+        "endpoint": "http://localhost:3000/_next/static/chunks/turbopack-_23a915ee._.js",
+        "source": "app",
+        "calls": 5,
+        "totalDurationMs": 88.57,
+        "maxDurationMs": 39.07,
+        "totalPayloadBytes": 374850,
+        "meanDurationMs": 17.71
+      },
+      {
+        "endpoint": "http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_a0e4c7b4._.js",
+        "source": "app",
+        "calls": 5,
+        "totalDurationMs": 88.1,
+        "maxDurationMs": 24.29,
+        "totalPayloadBytes": 722055,
+        "meanDurationMs": 17.62
+      },
+      {
+        "endpoint": "http://localhost:3000/_next/static/chunks/node_modules_next_dist_be32b49c._.js",
+        "source": "app",
+        "calls": 5,
+        "totalDurationMs": 84.04,
+        "maxDurationMs": 37.6,
+        "totalPayloadBytes": 633340,
+        "meanDurationMs": 16.81
+      },
+      {
+        "endpoint": "http://localhost:3000/_next/static/media/caa3a2e1cccd8315-s.p.853070df.woff2",
+        "source": "app",
+        "calls": 5,
+        "totalDurationMs": 83.55,
+        "maxDurationMs": 69.83,
+        "totalPayloadBytes": 141940,
+        "meanDurationMs": 16.71
+      },
+      {
+        "endpoint": "http://localhost:3000/_next/static/media/797e433ab948586e-s.p.dbea232f.woff2",
+        "source": "app",
+        "calls": 5,
+        "totalDurationMs": 79.62,
+        "maxDurationMs": 67.52,
+        "totalPayloadBytes": 156440,
+        "meanDurationMs": 15.92
+      },
+      {
+        "endpoint": "http://localhost:3000/_next/static/chunks/node_modules_ec39a6b7._.js",
+        "source": "app",
+        "calls": 1,
+        "totalDurationMs": 78.89,
+        "maxDurationMs": 78.89,
+        "totalPayloadBytes": 1043210,
+        "meanDurationMs": 78.89
+      },
+      {
+        "endpoint": "http://localhost:3000/_next/static/chunks/src_c25ec26a._.js",
+        "source": "app",
+        "calls": 5,
+        "totalDurationMs": 75.65,
+        "maxDurationMs": 29.39,
+        "totalPayloadBytes": 380530,
+        "meanDurationMs": 15.13
+      },
+      {
+        "endpoint": "http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_components_builtin_global-error_1cf6b850.js",
+        "source": "app",
+        "calls": 5,
+        "totalDurationMs": 71.22,
+        "maxDurationMs": 36.61,
+        "totalPayloadBytes": 1310,
+        "meanDurationMs": 14.24
+      },
+      {
+        "endpoint": "http://localhost:3000/_next/static/chunks/node_modules_%40swc_helpers_cjs_d80fb378._.js",
+        "source": "app",
+        "calls": 5,
+        "totalDurationMs": 71.19,
+        "maxDurationMs": 36.81,
+        "totalPayloadBytes": 9895,
+        "meanDurationMs": 14.24
+      },
+      {
+        "endpoint": "http://localhost:3000/_next/static/chunks/_a0ff3932._.js",
+        "source": "app",
+        "calls": 5,
+        "totalDurationMs": 64.69,
+        "maxDurationMs": 42.94,
+        "totalPayloadBytes": 3915,
+        "meanDurationMs": 12.94
+      },
+      {
+        "endpoint": "http://localhost:3000/_next/static/chunks/src_d8b57ee2._.js",
+        "source": "app",
+        "calls": 4,
+        "totalDurationMs": 54.35,
+        "maxDurationMs": 26.41,
+        "totalPayloadBytes": 538064,
+        "meanDurationMs": 13.59
+      },
+      {
+        "endpoint": "http://localhost:3000/_next/static/chunks/src_app_layout_tsx_1cf6b850._.js",
+        "source": "app",
+        "calls": 5,
+        "totalDurationMs": 52.56,
+        "maxDurationMs": 26.73,
+        "totalPayloadBytes": 1725,
+        "meanDurationMs": 10.51
+      },
+      {
+        "endpoint": "http://localhost:3000/__nextjs_font/geist-latin.woff2",
+        "source": "app",
+        "calls": 5,
+        "totalDurationMs": 31.87,
+        "maxDurationMs": 8.06,
+        "totalPayloadBytes": 28356,
+        "meanDurationMs": 6.37
+      },
+      {
+        "endpoint": "http://localhost:3000/_next/static/chunks/src_a2722667._.js",
+        "source": "app",
+        "calls": 1,
+        "totalDurationMs": 30.31,
+        "maxDurationMs": 30.31,
+        "totalPayloadBytes": 206438,
+        "meanDurationMs": 30.31
+      },
+      {
+        "endpoint": "http://localhost:3000/_next/static/chunks/src_app_conversations_page_tsx_605100b2._.js",
+        "source": "app",
+        "calls": 1,
+        "totalDurationMs": 27.98,
+        "maxDurationMs": 27.98,
+        "totalPayloadBytes": 289,
+        "meanDurationMs": 27.98
+      },
+      {
+        "endpoint": "http://localhost:3000/_next/static/chunks/src_c8cb5046._.js",
+        "source": "app",
+        "calls": 1,
+        "totalDurationMs": 24.46,
+        "maxDurationMs": 24.46,
+        "totalPayloadBytes": 45585,
+        "meanDurationMs": 24.46
+      },
+      {
+        "endpoint": "http://localhost:3000/_next/static/chunks/src_app_login_page_tsx_605100b2._.js",
+        "source": "app",
+        "calls": 1,
+        "totalDurationMs": 23.03,
+        "maxDurationMs": 23.03,
+        "totalPayloadBytes": 289,
+        "meanDurationMs": 23.03
+      },
+      {
+        "endpoint": "http://localhost:3000/_next/static/chunks/src_67b9792d._.js",
+        "source": "app",
+        "calls": 1,
+        "totalDurationMs": 12.71,
+        "maxDurationMs": 12.71,
+        "totalPayloadBytes": 97026,
+        "meanDurationMs": 12.71
+      },
+      {
+        "endpoint": "http://localhost:3000/_next/static/chunks/src_app_leads_page_tsx_605100b2._.js",
+        "source": "app",
+        "calls": 1,
+        "totalDurationMs": 10.65,
+        "maxDurationMs": 10.65,
+        "totalPayloadBytes": 289,
+        "meanDurationMs": 10.65
+      }
+    ],
+    "supabase": [
+      {
+        "endpoint": "https://aspx-supabase.9e4dsr.easypanel.host/rest/v1/leads",
+        "source": "supabase",
+        "calls": 6,
+        "totalDurationMs": 9797.92,
+        "maxDurationMs": 4113.42,
+        "totalPayloadBytes": 4698,
+        "meanDurationMs": 1632.99
+      },
+      {
+        "endpoint": "https://aspx-supabase.9e4dsr.easypanel.host/rest/v1/interactions",
+        "source": "supabase",
+        "calls": 5,
+        "totalDurationMs": 8367.04,
+        "maxDurationMs": 3376.56,
+        "totalPayloadBytes": 54678,
+        "meanDurationMs": 1673.41
+      },
+      {
+        "endpoint": "https://aspx-supabase.9e4dsr.easypanel.host/rest/v1/tenants",
+        "source": "supabase",
+        "calls": 6,
+        "totalDurationMs": 4317.56,
+        "maxDurationMs": 1160.22,
+        "totalPayloadBytes": 29535,
+        "meanDurationMs": 719.59
+      },
+      {
+        "endpoint": "https://aspx-supabase.9e4dsr.easypanel.host/auth/v1/token",
+        "source": "supabase",
+        "calls": 1,
+        "totalDurationMs": 2197.96,
+        "maxDurationMs": 2197.96,
+        "totalPayloadBytes": 1838,
+        "meanDurationMs": 2197.96
+      },
+      {
+        "endpoint": "http://localhost:3000/_next/static/chunks/node_modules_%40supabase_49da7d95._.js",
+        "source": "supabase",
+        "calls": 4,
+        "totalDurationMs": 146.92,
+        "maxDurationMs": 64.79,
+        "totalPayloadBytes": 1430028,
+        "meanDurationMs": 36.73
+      },
+      {
+        "endpoint": "http://localhost:3000/_next/static/chunks/node_modules_%40supabase_auth-js_dist_module_e6c70351._.js",
+        "source": "supabase",
+        "calls": 4,
+        "totalDurationMs": 143.07,
+        "maxDurationMs": 61.51,
+        "totalPayloadBytes": 1311216,
+        "meanDurationMs": 35.77
+      }
+    ]
+  }
+}
