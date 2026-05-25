@@ -68,14 +68,6 @@ export async function updateSession(request: NextRequest) {
     return supabaseResponse;
   }
 
-  // For protected pages, avoid Supabase call if auth cookie is missing.
-  if (!hasAuthCookie && !isPublicPath) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    url.search = "";
-    return NextResponse.redirect(url);
-  }
-
   const supabaseUrl =
     process.env.SUPABASE_INTERNAL_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
 

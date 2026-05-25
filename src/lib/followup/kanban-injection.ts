@@ -98,12 +98,18 @@ function resolveInitialDelay(columns: FollowKanbanColumnConfig[]): string {
   return String(safeDelay);
 }
 
+function resolveInitialDelayNum(columns: FollowKanbanColumnConfig[]): number {
+  const firstColumn = [...columns].sort((a, b) => a.order - b.order)[0];
+  const delay = Number(firstColumn?.delay_hours ?? 0);
+  return Number.isFinite(delay) ? Math.max(0, Math.trunc(delay)) : 0;
+}
+
 export function sanitizeFollowConfig(input: FollowConfig | null | undefined): FollowConfig {
   const columns = normalizeColumns(input?.kanban?.columns);
   const start = normalizeHour(input?.business_hours?.start ?? "", "08:00");
   const end = normalizeHour(input?.business_hours?.end ?? "", "22:00");
   const days = normalizeDays(input?.business_hours?.days);
-  const horaDiff = resolveInitialDelay(columns);
+  const horaDiff = resolveInitialDelayNum(columns);
 
   return {
     kanban: {

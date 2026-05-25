@@ -19,7 +19,7 @@ export async function warmupSupabaseSession() {
     const supabase = createClient();
 
     try {
-      await supabase.auth.getSession();
+      await supabase.auth.getUser();
     } catch (error) {
       if (process.env.NODE_ENV !== "production") {
         console.warn("Falha ao aquecer sessao Supabase:", error);

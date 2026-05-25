@@ -98,6 +98,20 @@ export async function PATCH(
       }
     }
 
+    // Validate custom_data shape and size
+    if ("custom_data" in updates) {
+      const cd = updates.custom_data;
+      if (cd !== null && (typeof cd !== "object" || Array.isArray(cd))) {
+        return NextResponse.json({ error: "custom_data deve ser um objeto ou null" }, { status: 400 });
+      }
+      if (cd !== null) {
+        const serialized = JSON.stringify(cd);
+        if (serialized.length > 10_000) {
+          return NextResponse.json({ error: "custom_data excede o tamanho máximo permitido (10KB)" }, { status: 400 });
+        }
+      }
+    }
+
     // Normalizar e validar campos antes de atualizar o DB
     if ("status_kanban" in updates) {
       const raw = updates.status_kanban;

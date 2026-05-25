@@ -64,7 +64,13 @@ export async function GET(request: NextRequest) {
       query = query.eq("not_a_lead", notALead === "true");
     }
     if (search) {
-      query = query.or(`name.ilike.%${search}%,phone.ilike.%${search}%`);
+      // Escape PostgREST special characters to prevent filter injection
+      const sanitized = search
+        .replace(/\\/g, "\\\\")
+        .replace(/%/g, "\\%")
+        .replace(/_/g, "\\_")
+        .replace(/[.,()]/g, "");
+      query = query.or(`name.ilike.%${sanitized}%,phone.ilike.%${sanitized}%`);
     }
 
     // Paginação

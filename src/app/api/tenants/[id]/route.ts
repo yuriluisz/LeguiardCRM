@@ -8,11 +8,10 @@ import {
 } from "@/lib/followup/kanban-injection";
 import type { AiConfigFollowup, FollowConfig } from "@/types/database";
 
-function resolveHoraDiff(config: FollowConfig): string {
+function resolveHoraDiff(config: FollowConfig): number {
   const firstColumn = [...(config.kanban.columns ?? [])].sort((a, b) => a.order - b.order)[0];
   const delay = Number(firstColumn?.delay_hours ?? 0);
-  const safeDelay = Number.isFinite(delay) ? Math.max(0, Math.trunc(delay)) : 0;
-  return String(safeDelay);
+  return Number.isFinite(delay) ? Math.max(0, Math.trunc(delay)) : 0;
 }
 
 function getAdminClient() {
@@ -243,8 +242,8 @@ export async function PATCH(
     let updatedTenant = updatedRow;
 
     if (wantsFollowConfig) {
-      const persistedHoraDiff = String(
-        (updatedTenant?.follow_config as FollowConfig | null)?.business_hours?.hora_diff ?? ""
+      const persistedHoraDiff = Number(
+        (updatedTenant?.follow_config as FollowConfig | null)?.business_hours?.hora_diff ?? 0
       );
 
       if (persistedHoraDiff !== canonicalHoraDiff) {

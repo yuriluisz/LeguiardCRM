@@ -1,7 +1,7 @@
 /** StatusKanban agora é dinâmico — qualquer string válida conforme kanban_config do tenant */
 export type StatusKanban = string;
 
-export type Temperature = "frio" | "morno" | "quente";
+export type Temperature = "desconhecido" | "frio" | "morno" | "quente";
 
 export type InteractionRole = "user" | "assistant";
 
@@ -54,7 +54,7 @@ export interface FollowConfig {
     start: string;
     end: string;
     days: number[];
-    hora_diff: string;
+    hora_diff: number;
   };
 }
 
@@ -184,7 +184,7 @@ export const DEFAULT_FOLLOW_CONFIG: FollowConfig = {
     start: "08:00",
     end: "22:00",
     days: [1, 2, 3, 4, 5],
-    hora_diff: "24",
+    hora_diff: 24,
   },
 };
 
