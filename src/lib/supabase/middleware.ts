@@ -51,24 +51,13 @@ export async function updateSession(request: NextRequest) {
     request,
   });
 
-  // For app/page navigations, keep middleware lightweight and let page/layout
-  // server checks handle user validation to avoid duplicated auth round-trips.
-  if (!isApiPath) {
-    if (!hasAuthCookie && !isPublicPath) {
-      const url = request.nextUrl.clone();
-      url.pathname = "/login";
-      url.search = "";
-      return NextResponse.redirect(url);
-    }
-    return supabaseResponse;
-  }
-
-  // Skip auth.getUser when there is no auth cookie for public or API routes.
+  // Keep the no-cookie fast path for public/API routes, but protected pages still
+  // need the server-side Supabase client so session cookies are normalized before
+  // the React Server Components tree runs.
   if (!hasAuthCookie && (isPublicPath || isApiPath)) {
     return supabaseResponse;
   }
 
-  // For protected pages, avoid Supabase call if auth cookie is missing.
   if (!hasAuthCookie && !isPublicPath) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
@@ -145,11 +134,12 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (!user && !isPublicPath) {
-    clearActiveCrmUserCookie(supabaseResponse);
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.search = "";
-    return NextResponse.redirect(url);
+    const redirectResponse = NextResponse.redirect(url);
+    clearActiveCrmUserCookie(redirectResponse);
+    return redirectResponse;
   }
 
   if (user && !isPublicPath) {
@@ -193,12 +183,13 @@ export async function updateSession(request: NextRequest) {
 
       if (!crmUser || !crmUser.active) {
         await supabase.auth.signOut();
-        clearActiveCrmUserCookie(supabaseResponse);
         const url = request.nextUrl.clone();
         url.pathname = "/login";
         url.search = "";
         url.searchParams.set("error", "inactive");
-        return NextResponse.redirect(url);
+        const redirectResponse = NextResponse.redirect(url);
+        clearActiveCrmUserCookie(redirectResponse);
+        return redirectResponse;
       }
 
       setActiveCrmUserCookie(supabaseResponse, user.id);

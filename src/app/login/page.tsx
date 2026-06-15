@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, Suspense, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,7 +33,6 @@ function LoginContent() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const router = useRouter();
   const searchParams = useSearchParams();
 
   const errorParam = searchParams.get("error");
@@ -63,8 +62,7 @@ function LoginContent() {
         return;
       }
 
-      router.push("/dashboard");
-      router.refresh();
+      window.location.replace("/dashboard");
     } catch {
       setError("Erro inesperado. Tente novamente.");
     } finally {
@@ -129,8 +127,7 @@ function LoginContent() {
         return;
       }
 
-      router.push("/dashboard");
-      router.refresh();
+      window.location.replace("/dashboard");
     } catch {
       setError("Erro inesperado. Tente novamente.");
     } finally {
@@ -198,9 +195,18 @@ function LoginContent() {
         return;
       }
 
-      // Redirect to login page with success flag
-      router.push("/login?onboard=success");
-      router.refresh();
+      const supabase = createClient();
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: tokenUser.email,
+        password: newPassword,
+      });
+
+      if (signInError) {
+        setError(signInError.message);
+        return;
+      }
+
+      window.location.replace("/dashboard");
     } catch {
       setError("Erro inesperado. Tente novamente.");
     } finally {

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,7 +20,6 @@ export default function UpdatePasswordPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  const router = useRouter();
 
   async function handleUpdatePassword(e: React.FormEvent) {
     e.preventDefault();
@@ -52,7 +50,7 @@ export default function UpdatePasswordPage() {
 
       setSuccess(true);
       setTimeout(() => {
-        router.push("/dashboard");
+        window.location.replace("/dashboard");
       }, 2000);
     } catch {
       setError("Erro ao atualizar senha. Tente novamente.");
