@@ -63,35 +63,6 @@ function LoginContent() {
         return;
       }
 
-      // Verificar se o usuário é um crm_user ativo
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) {
-        setError("Erro ao obter dados do usuário.");
-        return;
-      }
-
-      const { data: crmUser } = await supabase
-        .from("crm_users")
-        .select("active")
-        .eq("id", user.id)
-        .single();
-
-      if (!crmUser) {
-        await supabase.auth.signOut();
-        setError("Usuário não autorizado para acessar o CRM.");
-        return;
-      }
-
-      if (!crmUser.active) {
-        await supabase.auth.signOut();
-        setError("Sua conta está desativada. Entre em contato com o administrador.");
-        return;
-      }
-
-      // removed: do not store lastLoginAt for 'new since last login' feature
-
       router.push("/dashboard");
       router.refresh();
     } catch {
